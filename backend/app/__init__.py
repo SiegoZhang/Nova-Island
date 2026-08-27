@@ -1,0 +1,1 @@
+"""Nova Island backend application."""

@@ -1,0 +1,10 @@
+# Nova Island · reverse proxy + automatic HTTPS
+# Caddy 会自动申请 / 续期 Let's Encrypt 证书（需域名 A 记录已指向本机公网 IP）。
+#
+# 域名由仓库根目录 .env 中的 SITE_DOMAIN 注入，多个域名用逗号分隔：
+#   SITE_DOMAIN=example.com, www.example.com
+
+{$SITE_DOMAIN} {
+	encode gzip
+	reverse_proxy front:3000
+}

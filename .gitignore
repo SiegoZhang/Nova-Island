@@ -1,0 +1,92 @@
+# Node.js dependencies
+node_modules/
+.pnp
+.pnp.js
+# Source community exports and generated ETL output (large / contains personal data)
+data/**
+
+# Next.js and frontend build output
+.next/
+out/
+build/
+dist/
+coverage/
+
+# Environment files (keep documented examples)
+.env
+.env.*
+!.env.example
+
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Local databases and MySQL volumes
+*.db
+*.sqlite
+*.sqlite3
+.data/
+mysql-data/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE and editor state
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# AI assistant / agent local configuration (never commit)
+.claude/
+.cursor/
+.aider*
+.continue/
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Deployment and local containers
+.vercel
+docker-compose.override.yml
+
+# Temporary files
+temp/
+tmp/
+
+# Local object storage uploads (runtime upload dirs, not source code)
+backend/storage/
+storage/
+!backend/app/core/storage/
+
+# Offline deploy packaging leftovers
+*.tar.gz
+*.tgz
+*.sql.gz
+dist-deploy/
+RELEASE_READY.txt
+.env.prod
+# Large media over GitHub 100MB limit
+assets/领航员视频.mp4

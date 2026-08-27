@@ -1,0 +1,122 @@
+# Nova Island — 本地 / 服务器 Docker 编排
+#
+# 用法：
+#   cp compose.env.example .env
+#   docker compose up -d --build
+#
+# 默认 APP_ENV=development（可起四件套 + 演示 seed）。
+# 生产请改 .env 中 APP_ENV=production 并填强密钥（见 compose.env.example）。
+# 离线升级：backend/front 固定 image 标签 *:prod（见 deploy/UPGRADE.md）。
+
+name: nova-island
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD:-nova_island_dev}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-nova_island}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    networks:
+      - nova
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - nova
+
+  backend:
+    image: nova-island-backend:prod
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-}
+        UV_INDEX_URL: ${UV_INDEX_URL:-}
+        UV_HTTP_TIMEOUT: ${UV_HTTP_TIMEOUT:-180}
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_NAME: Nova Island API
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000"]}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-nova_island}
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-nova_island_dev}
+      DB_AUTO_CREATE: "false"
+      DB_SEED: ${DB_SEED:-true}
+      SEED_DEFAULT_PASSWORD: ${SEED_DEFAULT_PASSWORD:-island@2026}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-please-use-a-long-random-secret}
+      REDIS_URL: redis://redis:6379/0
+      REDIS_ENABLED: "true"
+      RATE_LIMIT_ENABLED: "true"
+      STORAGE_BACKEND: local
+      STORAGE_LOCAL_ROOT: /app/storage/uploads
+      STORAGE_PUBLIC_BASE_URL: ${STORAGE_PUBLIC_BASE_URL:-http://localhost:3000/media}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - backend_uploads:/app/storage/uploads
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    networks:
+      - nova
+
+  front:
+    image: nova-island-front:prod
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+      args:
+        API_INTERNAL_BASE_URL: ${API_INTERNAL_BASE_URL:-http://backend:8000/api/v1}
+        ENABLE_HTTPS_SECURITY_HEADERS: ${ENABLE_HTTPS_SECURITY_HEADERS:-false}
+        NPM_REGISTRY: ${NPM_REGISTRY:-}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NODE_ENV: production
+      # standalone 构建期已写入 rewrite 目标；运行时保留同源浏览器基址
+      NEXT_PUBLIC_API_BASE_URL: /api/v1
+      API_INTERNAL_BASE_URL: ${API_INTERNAL_BASE_URL:-http://backend:8000/api/v1}
+    ports:
+      - "${FRONT_PORT:-3000}:3000"
+    networks:
+      - nova
+
+volumes:
+  mysql_data:
+  redis_data:
+  backend_uploads:
+
+networks:
+  nova:
+    driver: bridge

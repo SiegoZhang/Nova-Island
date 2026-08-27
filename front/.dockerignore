@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+build
+coverage
+.env
+.env.*
+!.env.example
+*.md
+.DS_Store
+.git
+tsconfig.tsbuildinfo
+vitest.config.ts
+**/*.test.ts
+**/*.test.tsx

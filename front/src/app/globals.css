@@ -1,0 +1,343 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Inter";
+  src: url("/assets/inter-latin-300-normal-BVlfKGgI.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("/assets/inter-latin-400-normal-C38fXH4l.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("/assets/inter-latin-500-normal-Cerq10X2.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("/assets/inter-latin-600-normal-LgqL8muc.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("/assets/inter-latin-700-normal-Yt3aPRUw.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-nova-bg: var(--nova-bg);
+  --color-nova-bg-2: var(--nova-bg-2);
+  --color-nova-ocean: var(--nova-bg-ocean);
+  --color-nova-text: var(--nova-text);
+  --color-nova-body: var(--nova-text-body);
+  --color-nova-muted: var(--nova-text-muted);
+  --color-nova-accent: var(--nova-accent);
+  --color-nova-placeholder: var(--nova-placeholder);
+  --font-sans: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --radius-lg: var(--radius);
+}
+
+:root {
+  --main-nav-height: 60px;
+  --main-nav-safe-height: calc(var(--main-nav-height) + env(safe-area-inset-top,0px));
+  --background: #f8f9fa;
+  --foreground: #151719;
+  --card: #ffffff;
+  --card-foreground: #151719;
+  --primary: #151719;
+  --primary-foreground: #ffffff;
+  --secondary: #eef1ef;
+  --secondary-foreground: #151719;
+  --muted: #eef1ef;
+  --muted-foreground: #6b7175;
+  --accent: #7faebb;
+  --accent-foreground: #151719;
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+  --border: rgb(21 23 25 / 8%);
+  --ring: #7faebb;
+  --radius: 1.125rem;
+  --nova-bg: #f8f9fa;
+  --nova-bg-2: #eef1ef;
+  --nova-bg-ocean: #e7f0f2;
+  --nova-text: #151719;
+  --nova-text-body: #5f666b;
+  --nova-text-muted: #8b9297;
+  --nova-border: rgb(21 23 25 / 8%);
+  --nova-accent: #7faebb;
+  --nova-accent-light: #ddedef;
+  --nova-warm: #e9e1d4;
+  --nova-placeholder: #f8f8f8;
+  --nova-card-bg: rgb(255 255 255 / 64%);
+  --nova-card-border: rgb(21 23 25 / 8%);
+  --nova-shadow: 0 12px 40px rgb(21 23 25 / 5%);
+}
+
+/* 放进 @layer base，避免这条无 layer 的全局重置在层叠优先级上
+   压过 Tailwind 工具类（比如 Navbar 用 border-transparent 在页面
+   顶端隐藏分割线，之前会被这条规则强行盖掉，导致线一直显示）。 */
+@layer base {
+  * {
+    border-color: var(--nova-border);
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+  background: var(--nova-bg);
+  color: var(--nova-text);
+  font-family: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+}
+
+.section-container {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: 48px;
+}
+
+.nova-btn-primary,
+.nova-btn-secondary {
+  border-radius: 999px;
+  padding: 12px 28px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nova-btn-primary {
+  background: var(--nova-text);
+  color: white;
+}
+
+.nova-btn-primary:hover {
+  background: #000000;
+  transform: translateY(-1px);
+}
+
+.nova-btn-secondary {
+  border: 1px solid rgb(21 23 25 / 12%);
+  background: rgb(255 255 255 / 48%);
+  color: var(--nova-text);
+  backdrop-filter: blur(12px);
+}
+
+.nova-btn-secondary:hover {
+  border-color: rgb(21 23 25 / 30%);
+  background: rgb(255 255 255 / 72%);
+}
+
+.reveal {
+  animation: reveal-up 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.reveal-delay-1 {
+  animation-delay: 120ms;
+}
+
+.reveal-delay-2 {
+  animation-delay: 240ms;
+}
+
+/* LineRevealText 用：整段文字按真实换行结果拆成字符级原子，每个原子套
+   这条动画，用 --line-delay 按行错开——同一行里所有原子的 --line-delay
+   相同，视觉上还是"整行一起浮现"，不是逐字蹦出来。 */
+.reveal-atom {
+  display: inline-block;
+  animation: reveal-up 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--line-delay, 0ms);
+}
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fade-in 400ms ease both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes team-card-slide-in-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes team-card-slide-out-up {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, -100%, 0);
+  }
+}
+
+@keyframes team-card-slide-in-down {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -100%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes team-card-slide-out-down {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+/* 合作品牌墙横向无缝滚动：轨道内容摆三份完整列表。单份列表实测比卡片可视
+   宽度还窄，只摆两份的话，滚动到接近循环终点时可视区域会露出轨道末尾之外
+   的空白（没有第三份内容可看），表现为"突然刷新"的跳帧；摆三份、滚动到
+   -33.333%（一份列表的宽度）才能保证任何时刻可视区域内都还有内容，循环处
+   视觉上和起始状态完全重合。 */
+@keyframes marquee-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-33.3333%);
+  }
+}
+
+@keyframes marquee-right {
+  from {
+    transform: translateX(-33.3333%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-marquee-left {
+  animation: marquee-left linear infinite;
+}
+
+.animate-marquee-right {
+  animation: marquee-right linear infinite;
+}
+
+.animate-marquee-left:hover,
+.animate-marquee-right:hover {
+  animation-play-state: paused;
+}
+
+/* Hero「环绕方块」效果：立体方块的持续旋转 + 方块/数据节点的漂浮动画。 */
+@keyframes hero-orbit-spin {
+  from {
+    transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+  }
+  to {
+    transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg);
+  }
+}
+
+@keyframes hero-orbit-bob {
+  0%,
+  100% {
+    margin-top: 0;
+  }
+  50% {
+    margin-top: -16px;
+  }
+}
+
+@media (max-width: 767px) {
+  .section-container {
+    padding-inline: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

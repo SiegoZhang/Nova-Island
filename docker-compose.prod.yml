@@ -1,0 +1,27 @@
+# 生产叠加层：在四件套外增加 Caddy（80/443 + 自动 HTTPS）
+#
+#   cp compose.env.production.example .env
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+services:
+  caddy:
+    image: caddy:2.9-alpine
+    restart: unless-stopped
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?SITE_DOMAIN is required, see compose.env.production.example}
+    depends_on:
+      - front
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - nova
+
+volumes:
+  caddy_data:
+  caddy_config:
