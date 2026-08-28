@@ -38,7 +38,7 @@
 }
 
 :root {
-  --main-nav-height: 60px;
+  --main-nav-height: 48px;
   --main-nav-safe-height: calc(var(--main-nav-height) + env(safe-area-inset-top,0px));
   --background: #f8f9fa;
   --foreground: #151719;

@@ -8,7 +8,15 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { CloseIcon, MenuIcon } from "@/components/icons";
+import { eMono } from "@/lib/eleven";
 import { cn } from "@/lib/utils";
+
+// 导航栏按 Figma node 217:39「header」重做：不再是浮在内容上的玻璃胶囊，
+// 而是一条贴顶通栏的扁平栏——左侧一排 JetBrains Mono 小号标签页（当前页
+// 顶部有一道 2px 白色指示条、字重加粗），右侧是通知铃 + 白色方角「登录」
+// 按钮 / 已登录时的用户菜单。栏底一道 rgba(255,255,255,0.12) 发丝线。
+// 透明背景在浅色子页面上会看不清文字，这里补一层半透明黑 + 背板模糊，
+// 沿用旧版玻璃导航的做法，保证浅色页也能读。
 
 const navigationItems = [
   { label: "首页", href: "/" },
@@ -62,68 +70,78 @@ export function Navbar() {
   }, [isMenuOpen]);
 
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-50 flex h-[var(--main-nav-safe-height)] items-center justify-center px-4 pt-[env(safe-area-inset-top,0px)]">
+    <header
+      className="fixed inset-x-0 top-0 z-50 h-[calc(48px+env(safe-area-inset-top,0px))] border-b border-white/[0.12] bg-[#070709]/85 pt-[env(safe-area-inset-top,0px)] backdrop-blur-md"
+    >
       <nav
         aria-label="主导航"
-        className="pointer-events-auto relative flex h-12 items-center gap-5 rounded-full bg-black/[0.46] px-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.22)] backdrop-blur-[18px] min-[840px]:gap-6"
+        className="flex h-12 items-stretch justify-between pr-4 pl-4 md:pr-12 md:pl-12"
       >
-        <Link
-          href="/"
-          aria-label="NOVA Island 首页"
-          className="inline-flex h-9 min-w-0 items-center rounded-full px-3.5 text-[14px] font-semibold tracking-[-0.01em] text-white outline-none transition-[background-color,transform] duration-200 hover:bg-white/[0.14] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-white/45"
-        >
-          <span className="truncate">NOVA Island</span>
-        </Link>
+        {/* 桌面：左侧标签页 */}
+        <div className="hidden items-stretch min-[840px]:flex">
+          {navigationItems.map((item) => {
+            const isActive = item.href === activeHref;
+            return (
+              <Link
+                key={item.label}
+                href={navHref(item.href, canEnterCommunity)}
+                prefetch={
+                  item.href.startsWith("/community") && canEnterCommunity
+                    ? true
+                    : undefined
+                }
+                aria-current={isActive ? "page" : undefined}
+                className={cn(
+                  eMono,
+                  "flex items-center border-t-2 px-4 text-[10px] whitespace-nowrap outline-none transition-colors duration-200 focus-visible:bg-white/[0.06]",
+                  isActive
+                    ? "border-[#f3f4f6] font-bold text-[#f3f4f6]"
+                    : "border-transparent font-normal text-[#4b5563] hover:text-[#9ca3af]",
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
 
-        <div className="hidden min-[840px]:flex">
-          <div className="inline-flex items-center gap-1">
-            {navigationItems.map((item) => {
-              const isActive = item.href === activeHref;
-              return (
-                <Link
-                  key={item.label}
-                  href={navHref(item.href, canEnterCommunity)}
-                  prefetch={
-                    item.href.startsWith("/community") && canEnterCommunity
-                      ? true
-                      : undefined
-                  }
-                  aria-current={isActive ? "page" : undefined}
-                  className={cn(
-                    "inline-flex h-9 w-[72px] shrink-0 items-center justify-center rounded-full px-2.5 text-[13px] font-medium whitespace-nowrap text-white outline-none transition-[background-color,color,transform] duration-200 hover:bg-white/[0.10] active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-white/45",
-                    isActive && "bg-white/[0.24] hover:bg-white/[0.24]",
-                  )}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
+        {/* 移动：左侧只放当前页标签 */}
+        <div className="flex items-center min-[840px]:hidden">
+          <span className={cn(eMono, "text-[11px] font-bold text-[#f3f4f6]")}>
+            {navigationItems.find((item) => item.href === activeHref)?.label ?? "新岛"}
+          </span>
+        </div>
+
+        {/* 右侧：通知铃 + 登录 / 用户菜单 */}
+        <div className="flex items-center gap-4 min-[840px]:gap-6">
+          <div className="hidden items-center gap-4 min-[840px]:flex">
+            <NotificationBell light />
+            {canEnterCommunity ? (
+              <UserMenu variant="desktop" light />
+            ) : (
+              <Link
+                href="/login"
+                className={cn(
+                  eMono,
+                  "inline-flex items-center rounded-[4px] border border-[#9ca3af] bg-white px-3 py-1.5 text-[10px] font-bold tracking-[0.06em] text-[#070709] uppercase outline-none transition-colors duration-200 hover:bg-[#e5e7eb] focus-visible:ring-2 focus-visible:ring-white/45",
+                )}
+              >
+                登录
+              </Link>
+            )}
           </div>
-        </div>
 
-        <div className="hidden items-center gap-2 min-[840px]:flex">
-          <span
-            aria-hidden="true"
-            className="mx-1 h-6 w-px rounded-full bg-white/35"
-          />
-          <NotificationBell light />
-          <UserMenu variant="desktop" light />
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen((open) => !open)}
+            aria-label={isMenuOpen ? "关闭菜单" : "打开菜单"}
+            aria-expanded={isMenuOpen}
+            aria-controls="mobile-menu"
+            className="flex size-9 items-center justify-center rounded-[4px] text-[#f3f4f6] outline-none transition-colors duration-200 hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/45 min-[840px]:hidden"
+          >
+            {isMenuOpen ? <CloseIcon className="size-5" /> : <MenuIcon className="size-5" />}
+          </button>
         </div>
-
-        <button
-          type="button"
-          onClick={() => setIsMenuOpen((open) => !open)}
-          aria-label={isMenuOpen ? "关闭菜单" : "打开菜单"}
-          aria-expanded={isMenuOpen}
-          aria-controls="mobile-menu"
-          className="flex size-9 items-center justify-center rounded-full text-white outline-none transition-[background-color,transform] duration-200 hover:bg-white/10 active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-white/45 min-[840px]:hidden"
-        >
-          {isMenuOpen ? (
-            <CloseIcon className="size-5" />
-          ) : (
-            <MenuIcon className="size-5" />
-          )}
-        </button>
       </nav>
 
       {/* 移动端下拉菜单 */}
@@ -139,7 +157,7 @@ export function Navbar() {
           aria-hidden="true"
           onClick={() => setIsMenuOpen(false)}
           className={cn(
-            "fixed inset-x-0 top-[var(--main-nav-safe-height)] -z-10 h-[calc(100dvh-var(--main-nav-safe-height))] w-full cursor-default bg-[#151719]/30 backdrop-blur-[2px] transition-opacity duration-200",
+            "fixed inset-x-0 top-[calc(48px+env(safe-area-inset-top,0px))] -z-10 h-[calc(100dvh-48px-env(safe-area-inset-top,0px))] w-full cursor-default bg-black/40 backdrop-blur-[2px] transition-opacity duration-200",
             isMenuOpen ? "opacity-100" : "opacity-0",
           )}
         />
@@ -149,15 +167,13 @@ export function Navbar() {
           inert={!isMenuOpen}
           aria-hidden={!isMenuOpen}
           className={cn(
-            "absolute left-1/2 top-full w-[min(calc(100vw-2rem),360px)] max-h-[min(74dvh,calc(100dvh-var(--main-nav-safe-height)-12px))] -translate-x-1/2 origin-top overflow-y-auto overscroll-contain rounded-[24px] border border-white/[0.22] bg-black/[0.58] p-2 shadow-[0_24px_70px_rgba(21,23,25,0.28)] backdrop-blur-[18px] transition-[opacity,transform] duration-200",
-            isMenuOpen
-              ? "translate-y-2 opacity-100"
-              : "translate-y-0 opacity-0",
+            "absolute inset-x-0 top-full max-h-[min(74dvh,calc(100dvh-48px-12px))] origin-top overflow-y-auto overscroll-contain border-b border-white/[0.12] bg-black/85 p-2 backdrop-blur-md transition-[opacity,transform] duration-200",
+            isMenuOpen ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0",
           )}
         >
           <nav
             aria-label="移动端导航"
-            className="flex flex-col gap-1 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
+            className="flex flex-col pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]"
           >
             {navigationItems.map((item) => {
               const isActive = item.href === activeHref;
@@ -173,25 +189,19 @@ export function Navbar() {
                   onClick={closeMenu}
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "flex min-h-11 items-center justify-between rounded-[24px] px-4 text-[15px] font-medium outline-none transition-[background-color,color,transform] duration-200 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-ring",
+                    eMono,
+                    "flex min-h-11 items-center border-l-2 px-4 text-[13px] outline-none transition-colors duration-200 focus-visible:bg-white/[0.06]",
                     isActive
-                      ? "bg-white/[0.24] text-white"
-                      : "text-white/78 hover:bg-white/[0.10] hover:text-white",
+                      ? "border-[#f3f4f6] font-bold text-[#f3f4f6]"
+                      : "border-transparent font-normal text-[#4b5563] hover:text-[#9ca3af]",
                   )}
                 >
-                  <span>{item.label}</span>
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      "size-1.5 rounded-full transition-colors",
-                      isActive ? "bg-white" : "bg-transparent",
-                    )}
-                  />
+                  {item.label}
                 </Link>
               );
             })}
 
-            <div className="mt-2 border-t border-white/20 pt-3">
+            <div className="mt-2 border-t border-white/[0.12] pt-3">
               <UserMenu variant="mobile" onNavigate={closeMenu} light />
             </div>
           </nav>
