@@ -37,7 +37,7 @@ const AI_COMMUNITY_NAVIGATOR_DEFAULTS = {
   rightShiftPercent: 0,
   downShiftPercent: 0,
   density: 2,
-  dotMaxSize: 2.5,
+  dotMaxSize: 2.3,
   jitter: 0,
   edgeSpray: 0,
   sizeVariance: 0.46,
@@ -240,12 +240,16 @@ export function AiCommunityCarousel() {
 }
 
 // 四维雷达图：中心 50/50，四个顶点各沿一条半轴伸出（交流↑ / 收获→ /
-// 提升↓ / 前沿←）。数据区用 clip-path 多边形（纯白半透明，营造克制的
-// 高级感），配四根轴向辐条 + 发光顶点圆点——clip-path / height / width /
-// top / left 全都能用纯 CSS 过渡，切换维度时多边形平滑变形。
-const RADAR_MAX = 45; // 顶点最远伸到盒子的 45%（留出到最外层菱形环的余量）
+// 提升↓ / 前沿←）。只保留菱形网格环 + 白色半透明数据多边形 + 发光顶点
+// 圆点，不画贯穿全图的十字线，也不画中心到顶点的辐条——clip-path / top /
+// left 都能用纯 CSS 过渡，切换维度时多边形平滑变形。
+const RADAR_MAX = 40; // 数据顶点最远伸到盒子的 40%（留出到最外层菱形环的余量）
 
 const RADAR_RING_TONES = ["border-white/25", "border-white/[0.14]", "border-white/[0.08]"];
+// 菱形网格环的缩放：外环 0.7（rotate45 后四个角正好落在 176 方盒四条边的
+// 中点上、不再戳出边框），往里两层等比缩小。维度文字贴着方盒外侧、正对
+// 菱形四个角，不会被网格盖住。
+const RADAR_RING_SCALES = [0.7, 0.47, 0.24];
 
 function CommunityRadar({ dims }: { dims: AiCommunityDimensions }) {
   const { exchange, gain, growth, frontier } = dims;
@@ -253,14 +257,13 @@ function CommunityRadar({ dims }: { dims: AiCommunityDimensions }) {
     50 + RADAR_MAX * growth
   }%, ${50 - RADAR_MAX * frontier}% 50%)`;
 
-  const spoke = "absolute bg-white/40 transition-[width,height] duration-500 ease-out";
   const dot =
     "absolute size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_7px_rgba(255,255,255,0.55)] transition-[top,left] duration-500 ease-out";
 
   return (
     <div className="relative size-[176px] shrink-0" aria-hidden="true">
       {/* 菱形网格环——由外到内逐层变淡 */}
-      {[1, 0.66, 0.33].map((s, i) => (
+      {RADAR_RING_SCALES.map((s, i) => (
         <div
           key={s}
           className={`absolute inset-0 border ${RADAR_RING_TONES[i]}`}
@@ -271,24 +274,6 @@ function CommunityRadar({ dims }: { dims: AiCommunityDimensions }) {
       <div
         className="absolute inset-0 bg-white/[0.1] transition-[clip-path] duration-500 ease-out"
         style={{ clipPath: clip, WebkitClipPath: clip }}
-      />
-
-      {/* 轴向辐条 */}
-      <div
-        className={`${spoke} bottom-1/2 left-1/2 w-px -translate-x-1/2`}
-        style={{ height: `${RADAR_MAX * exchange}%` }}
-      />
-      <div
-        className={`${spoke} left-1/2 top-1/2 h-px -translate-y-1/2`}
-        style={{ width: `${RADAR_MAX * gain}%` }}
-      />
-      <div
-        className={`${spoke} left-1/2 top-1/2 w-px -translate-x-1/2`}
-        style={{ height: `${RADAR_MAX * growth}%` }}
-      />
-      <div
-        className={`${spoke} right-1/2 top-1/2 h-px -translate-y-1/2`}
-        style={{ width: `${RADAR_MAX * frontier}%` }}
       />
 
       {/* 顶点圆点 */}
