@@ -78,10 +78,21 @@ export function AiCommunityCarousel() {
       >
         <div className="relative z-10 flex flex-1 flex-col gap-14 px-6 py-24 md:grid md:grid-cols-[minmax(240px,320px)_minmax(0,1fr)_minmax(280px,340px)] md:items-center md:gap-8 md:px-12 md:py-0">
           {/* ── 左列 telemetry ── */}
-          <div className="reveal flex flex-col gap-7">
+          <div className="reveal relative flex flex-col gap-7 md:z-0">
             <div>
-              <p className={`${eMono} text-[32px] font-bold leading-tight text-[#f3f4f6]`}>AI社群</p>
-              <p className={`${eMono} mt-1.5 text-[12px] text-[#9ca3af]`}>新岛AI</p>
+              {/* 「AI社群」放大到会溢出左列——「群」字右半被中间旋转的点阵
+                  人像盖住（中间那列 z-10 更高），「群」字自身下半部分再用
+                  竖向渐变蒙版淡出，跟人像交叠处融成一体。pointer-events-none
+                  避免压住下面的「了解详情」按钮命中区。 */}
+              <h2
+                className={`${eMono} pointer-events-none whitespace-nowrap font-bold leading-[0.82] tracking-[-0.03em] text-[#f3f4f6] text-[clamp(60px,12vw,150px)]`}
+              >
+                <span>AI社</span>
+                <span className="inline-block [-webkit-mask-image:linear-gradient(to_bottom,#000_44%,transparent_94%)] [mask-image:linear-gradient(to_bottom,#000_44%,transparent_94%)]">
+                  群
+                </span>
+              </h2>
+              <p className={`${eMono} mt-3 text-[12px] text-[#9ca3af]`}>新岛AI</p>
             </div>
             <div>
               <p className={`${eMono} text-[9px] uppercase tracking-[0.15em] text-[#4b5563]`}>Intro</p>
@@ -103,7 +114,7 @@ export function AiCommunityCarousel() {
           {/* ── 中间 target-coordinate-area ── */}
           <div
             data-parallax
-            className="reveal group relative mx-auto aspect-square w-[min(88vw,520px)] md:w-[min(60vh,600px)]"
+            className="reveal group relative z-10 mx-auto aspect-square w-[min(88vw,520px)] md:mr-auto md:ml-[-4%] md:w-[min(60vh,600px)]"
           >
             {/* 外圈大圆 + 十字线 */}
             <div className="absolute inset-[6%] rounded-full border border-white/10" />
