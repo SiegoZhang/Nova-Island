@@ -1,229 +1,329 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { CardBreadcrumb } from "@/components/CardBreadcrumb";
-import { ArrowRightIcon } from "@/components/icons";
-import { FlagVisual } from "@/components/FlagVisual";
+import { ChevronDownIcon } from "@/components/icons";
 import { LazyMount } from "@/components/LazyMount";
 import { NavigatorDotMatrix } from "@/components/NavigatorDotMatrix";
-import { ParticleField } from "@/components/particle-field";
-import { RingSphereDotMatrix } from "@/components/RingSphereDotMatrix";
-import { SalonDotMatrix } from "@/components/SalonDotMatrix";
-import { SphereConnectDotMatrix } from "@/components/SphereConnectDotMatrix";
-import { ToolDotMatrix } from "@/components/ToolDotMatrix";
-import { aiCommunityFeatures as features } from "@/lib/aiCommunityFeatures";
-import { eBtnPrimary, eEyebrowDark, eRailContainer, ePageContainer } from "@/lib/eleven";
+import {
+  aiCommunityFeatures as features,
+  type AiCommunityDimensions,
+} from "@/lib/aiCommunityFeatures";
+import { eMono } from "@/lib/eleven";
 
-// Figma（node 169:4096）里的板块是一排大卡片轮播：容器裁切出一张完整
-// 展开的当前卡（标题+文案+视觉+CTA），左右各露出一小截相邻卡片作为
-// "还有更多"的提示。这里用原生横向 scroll-snap 还原同样的观感，不放
-// 任何翻页按钮/圆点——只保留两种交互：悬浮区域滚动滚轮切卡（见下方
-// wheel 监听），或者直接点击露出的相邻卡片区域滚动过去。
+// Figma node 217:13「spectral-analysis-dashboard」——AI 社群板块整体做成一台
+// 光谱分析仪的读数界面：
+//   · 左列（telemetry）：AI社群标题 + 简介 + 「了解详情」，滚动时保持不变。
+//   · 中间（target-coordinate-area）：始终是「成为领航员」那尊点阵人像
+//     （NavigatorDotMatrix），外面套一实一虚两个方框 + 同心圆 + 十字线 +
+//     LAMBDA 轴。鼠标悬浮时两个方框错位交叠、人像上浮现一小片红/蓝/琥珀
+//     像素。滚轮不切换中间元素。
+//   · 右列：NN/06 编号 + 维度名 + 描述 + 四维雷达图（交流 / 收获 / 提升 /
+//     前沿），随滚轮或上下按钮在 6 个维度之间切换。
+//
+// 交互：悬浮在仪表盘上纵向滚轮切换右侧维度，一次手势切一格（空闲重置
+// 防抖，跟 TeamSection/FdeSection 同一套），到首尾不再拦截，把滚动交还
+// 给 SlideDeck 翻屏。
+
+// 中间人像上悬浮浮现的像素色块：12×12 网格，按到中心的距离分层上色——
+// 白核 → 琥珀环 → 红/蓝交错外圈，再抽稀约 1/3 形成散点而不是实心圆斑。
+// 渲染成一层覆盖在 NavigatorDotMatrix 上、默认透明、group-hover 时按距离
+// 错峰淡入的方块。
+const HOVER_PIXELS: { color: string; delay: number }[] = (() => {
+  const cells: { color: string; delay: number }[] = [];
+  for (let r = 0; r < 12; r++) {
+    for (let c = 0; c < 12; c++) {
+      const dx = c - 5.5;
+      const dy = r - 5.5;
+      const d = Math.hypot(dx, dy);
+      let color = "";
+      if (d <= 1.7) color = "#ffffff";
+      else if (d <= 3.1) color = "#f59e0b";
+      else if (d <= 5) color = (r + c) % 2 === 0 ? "#dc2626" : "#1d4ed8";
+      if (color && (r * 7 + c * 3) % 3 === 0) color = "";
+      cells.push({ color, delay: color ? Math.round(d * 45) : 0 });
+    }
+  }
+  return cells;
+})();
+
+const WHEEL_GESTURE_IDLE_MS = 200;
+
 export function AiCommunityCarousel() {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const activeIndexRef = useRef(0);
-  const wheelIdleTimeoutRef = useRef<number | null>(null);
+  const [active, setActive] = useState(0);
+  const activeRef = useRef(0);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const wheelIdleRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const mostVisible = entries.reduce<IntersectionObserverEntry | null>(
-          (best, entry) =>
-            entry.intersectionRatio > (best?.intersectionRatio ?? 0) ? entry : best,
-          null,
-        );
-        if (mostVisible && mostVisible.intersectionRatio > 0) {
-          const index = cardRefs.current.findIndex((el) => el === mostVisible.target);
-          if (index !== -1) {
-            activeIndexRef.current = index;
-            setActiveIndex(index);
-          }
-        }
-      },
-      { root: track, threshold: [0.5, 0.6, 0.7, 0.8, 0.9, 1] },
-    );
-
-    cardRefs.current.forEach((el) => el && observer.observe(el));
-    return () => observer.disconnect();
+  const go = useCallback((next: number) => {
+    if (next < 0 || next >= features.length || next === activeRef.current) return;
+    activeRef.current = next;
+    setActive(next);
   }, []);
 
-  const goTo = (index: number) => {
-    cardRefs.current[index]?.scrollIntoView({
-      behavior: "smooth",
-      inline: "center",
-      block: "nearest",
-    });
-  };
-
   useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
+    const el = rootRef.current;
+    if (!el) return;
 
-    // 悬浮在轮播区域时，纵向滚轮手势切卡而不是滚动页面；横向手势（触控板
-    // 双指横滑）保留原生横向滚动。一次滚轮手势只切一张卡——鼠标滚轮/
-    // 触控板都会在一次手势里连续触发几十个 wheel 事件（尤其是带惯性/
-    // 动量滚动的鼠标，一次滚动的事件流可能持续一秒以上），不能用固定
-    // 时长的锁：锁定时长一旦短于事件流实际持续的时间，锁提前解开后，
-    // 同一次物理滚动里后面的 wheel 事件会被当成"新的一次滚动"，导致
-    // 一次滚动跳两张卡。这里改成空闲重置防抖——每来一个 wheel 事件就
-    // 顺延解锁时间，只有事件流真正停下来一段时间后才解锁，不管这次
-    // 滚动手势持续多久都只切一张卡。到达首尾卡片后不再拦截，把滚动
-    // 交还给页面纵向滚动。
-    const WHEEL_GESTURE_IDLE_MS = 200;
-
-    const handleWheel = (event: WheelEvent) => {
+    const onWheel = (event: WheelEvent) => {
       if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
-
-      const direction = event.deltaY > 0 ? 1 : -1;
-      const nextIndex = activeIndexRef.current + direction;
-      if (nextIndex < 0 || nextIndex >= features.length) return;
+      const dir = event.deltaY > 0 ? 1 : -1;
+      const next = activeRef.current + dir;
+      if (next < 0 || next >= features.length) return; // 首尾放行 → SlideDeck 翻屏
 
       event.preventDefault();
-
-      if (wheelIdleTimeoutRef.current === null) {
-        goTo(nextIndex);
+      if (wheelIdleRef.current === null) {
+        go(next);
       } else {
-        window.clearTimeout(wheelIdleTimeoutRef.current);
+        window.clearTimeout(wheelIdleRef.current);
       }
-      wheelIdleTimeoutRef.current = window.setTimeout(() => {
-        wheelIdleTimeoutRef.current = null;
+      wheelIdleRef.current = window.setTimeout(() => {
+        wheelIdleRef.current = null;
       }, WHEEL_GESTURE_IDLE_MS);
     };
 
-    track.addEventListener("wheel", handleWheel, { passive: false });
+    el.addEventListener("wheel", onWheel, { passive: false });
     return () => {
-      track.removeEventListener("wheel", handleWheel);
-      if (wheelIdleTimeoutRef.current !== null) {
-        window.clearTimeout(wheelIdleTimeoutRef.current);
-      }
+      el.removeEventListener("wheel", onWheel);
+      if (wheelIdleRef.current !== null) window.clearTimeout(wheelIdleRef.current);
     };
-  }, []);
+  }, [go]);
+
+  const feature = features[active];
 
   return (
     <section id="ai" className="w-full bg-black">
-      <div className={ePageContainer}>
-        <div data-parallax className="reveal mb-10 text-center">
-          <p className={eEyebrowDark}>AI社群</p>
-          <h2 className="mt-4 text-[32px] leading-[1.1] font-medium tracking-[-0.02em] text-[#f5f5f5] md:text-[40px]">
-            保持对行业前沿的持续感知
-          </h2>
-          <p className="mx-auto mt-3 max-w-[540px] text-[16px] leading-[1.65] text-[#a1a1aa]">
-            3000+ 行业先行者的选择，用最低成本保持对 AI 前沿的持续感知。
-          </p>
-        </div>
-      </div>
-
-      {/* 轮播轨道单独跳出 ePageContainer 的左右内边距，宽度直接贴到
-          GridRails 画出的竖向分割线——卡片左右滑出/滑入时应该在分割线
-          处被截断，而不是在分割线内侧留一圈空白再截断。左右各留一份
-          ePageContainer 同款的内边距，只是为了让停在两端的卡片（第一张
-          「每周风向」、最后一张「成为领航员」）跟分割线之间留出 36px
-          间距，不影响中间卡片滑出时依然贴线截断——这份 padding 只在
-          scrollLeft 到达两端极限时才会露出来，中途滚动不受影响。 */}
-      <div className={eRailContainer}>
+      <div
+        ref={rootRef}
+        className="relative mx-auto flex min-h-[100svh] w-full max-w-[1440px] flex-col overflow-hidden md:h-[100svh]"
+      >
+        {/* 100px 网格底纹 */}
         <div
-          ref={trackRef}
-          className="reveal flex snap-x snap-mandatory gap-6 overflow-x-auto pl-6 pr-6 md:pl-9 md:pr-9 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {features.map((feature, index) => (
-            <div
-              key={feature.label}
-              ref={(el) => {
-                cardRefs.current[index] = el;
-              }}
-              onClick={index === activeIndex ? undefined : () => goTo(index)}
-              className={`relative h-[420px] w-[82%] shrink-0 snap-center overflow-hidden rounded-2xl border border-white/10 bg-[#101012] sm:w-[68%] md:h-[min(56vh,560px)] lg:w-[78%] ${
-                index === activeIndex ? "" : "cursor-pointer"
-              }`}
-            >
-              {/* 视觉层和文案层对每张卡都常驻渲染，不随 activeIndex 切换来
-                  卸载/挂载——之前只给"当前卡"渲染真实内容、其余卡收缩成
-                  一个纯文字按钮，滚动切卡时会因为组件挂载/卸载而闪一下，
-                  两侧被收起的卡片文案也看不到。改成一直渲染同一份 DOM，
-                  滚动只是把已经存在的卡片移进/移出视口。 */}
-              <div
-                aria-hidden="true"
-                className={`absolute inset-0 ${
-                  feature.visual.type === "image"
-                    ? "bg-[#050a18]"
-                    : "bg-[#101012] [&_canvas]:opacity-[0.78]"
-                }`}
-              >
-                {feature.visual.type === "particle" ? (
-                  <ParticleField mode={feature.visual.mode} className="fade-in" />
-                ) : feature.visual.type === "flag" ? (
-                  <LazyMount>
-                    <FlagVisual className="fade-in" background="#101012" />
-                  </LazyMount>
-                ) : feature.visual.type === "ring-sphere-dot-matrix" ? (
-                  <LazyMount>
-                    <RingSphereDotMatrix className="fade-in" background="#101012" />
-                  </LazyMount>
-                ) : feature.visual.type === "tool-dot-matrix" ? (
-                  <LazyMount>
-                    <ToolDotMatrix className="fade-in" background="#101012" />
-                  </LazyMount>
-                ) : feature.visual.type === "sphere-connect-dot-matrix" ? (
-                  <LazyMount>
-                    <SphereConnectDotMatrix className="fade-in" background="#101012" />
-                  </LazyMount>
-                ) : feature.visual.type === "navigator-dot-matrix" ? (
-                  <LazyMount>
-                    <NavigatorDotMatrix className="fade-in" background="#101012" />
-                  </LazyMount>
-                ) : feature.visual.type === "salon-dot-matrix" ? (
-                  <LazyMount>
-                    <SalonDotMatrix className="fade-in" background="#101012" />
-                  </LazyMount>
-                ) : (
-                  <Image
-                    src={feature.visual.src}
-                    alt=""
-                    fill
-                    sizes="80vw"
-                    className="fade-in object-cover"
-                  />
-                )}
-              </div>
-              <div
-                className={`relative z-10 flex h-full max-w-[420px] flex-col justify-center gap-8 bg-gradient-to-r p-8 md:max-w-[480px] md:gap-10 md:p-14 ${
-                  feature.visual.type === "image"
-                    ? "from-[#050a18] via-[#050a18]/90 to-transparent"
-                    : "from-[#101012] via-[#101012]/90 to-transparent"
-                }`}
-              >
-                <div>
-                  <h3 className="text-[24px] leading-[1.3] font-semibold text-white md:text-[32px]">
-                    {feature.label}
-                  </h3>
-                  <p className="mt-4 text-[15px] leading-[1.7] text-white/70 md:text-[16px]">
-                    {feature.description}
-                  </p>
-                </div>
-                <Link href="/ai" className={`${eBtnPrimary} w-fit gap-1.5`}>
-                  探索详情
-                  <ArrowRightIcon className="size-4" strokeWidth={1.6} />
-                </Link>
-              </div>
-              <CardBreadcrumb
-                currentIndex={activeIndex}
-                total={features.length}
-                onSelect={goTo}
-                tone="dark"
-                className="absolute right-8 bottom-8 z-20 md:right-14 md:bottom-14"
-              />
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)",
+            backgroundSize: "100px 100px",
+          }}
+        />
+
+        <div className="relative z-10 flex flex-1 flex-col gap-14 px-6 py-24 md:grid md:grid-cols-[minmax(240px,320px)_minmax(0,1fr)_minmax(280px,340px)] md:items-center md:gap-8 md:px-12 md:py-0">
+          {/* ── 左列 telemetry ── */}
+          <div className="reveal flex flex-col gap-7">
+            <div>
+              <p className={`${eMono} text-[32px] font-bold leading-tight text-[#f3f4f6]`}>AI社群</p>
+              <p className={`${eMono} mt-1.5 text-[12px] text-[#9ca3af]`}>新岛AI</p>
             </div>
-          ))}
+            <div>
+              <p className={`${eMono} text-[9px] uppercase tracking-[0.15em] text-[#4b5563]`}>Intro</p>
+              <p className={`${eMono} mt-2 text-[11px] leading-[1.75] text-[#9ca3af]`}>
+                3000+ 行业先行者的选择，用最低成本保持对 AI 前沿的持续感知。每日精选全球顶尖 AI
+                研究、产品动态与实战案例，帮助你快速掌握技术趋势，将 AI
+                能力转化为实际生产力。无论你是开发者、创业者还是企业决策者，这里都是你连接 AI
+                未来的第一入口。
+              </p>
+            </div>
+            <Link
+              href="/ai"
+              className={`${eMono} inline-flex w-fit items-center rounded-[4px] border border-[#9ca3af] bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#070709] transition-colors hover:bg-[#e5e7eb]`}
+            >
+              了解详情
+            </Link>
+          </div>
+
+          {/* ── 中间 target-coordinate-area ── */}
+          <div
+            data-parallax
+            className="reveal group relative mx-auto aspect-square w-[min(78vw,440px)] md:w-[min(46vh,480px)]"
+          >
+            {/* 外圈大圆 + 十字线 */}
+            <div className="absolute inset-[6%] rounded-full border border-white/10" />
+            <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-white/10" />
+            <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-white/10" />
+            {/* 上 / 下刻度条 */}
+            <div className="absolute left-1/2 top-[3%] h-6 w-1.5 -translate-x-1/2 rounded-full bg-[#f3f4f6]" />
+            <div className="absolute bottom-[3%] left-1/2 h-6 w-1.5 -translate-x-1/2 rounded-full bg-[#f3f4f6]" />
+
+            {/* 实线方框 A —— 悬浮时向左下错位并轻微逆时针旋转 */}
+            <div className="absolute inset-[18%] border border-[#9ca3af]/55 transition-transform duration-500 ease-out group-hover:-translate-x-[6%] group-hover:translate-y-[5%] group-hover:-rotate-2" />
+            {/* 虚线方框 B —— 默认右上错位，悬浮时错得更开并顺时针旋转 */}
+            <div className="absolute inset-[18%] -translate-y-[10%] translate-x-[13%] border border-dashed border-[#9ca3af]/55 transition-transform duration-500 ease-out group-hover:-translate-y-[17%] group-hover:translate-x-[23%] group-hover:rotate-2">
+              <span
+                className={`${eMono} absolute right-1.5 top-1.5 bg-[#f3f4f6] px-1.5 py-0.5 text-[9px] font-bold text-[#070709]`}
+              >
+                Found
+              </span>
+            </div>
+
+            {/* 内同心圆 */}
+            <div className="absolute inset-[27%] rounded-full border border-white/[0.06]" />
+
+            {/* 点阵人像（常驻，不随滚动切换）—— NavigatorDotMatrix 内部默认向右
+                偏 16%，外层反向补偿一点让人像大致居中，具体量后续可调。 */}
+            <div className="absolute inset-[16%] -translate-x-[6%] overflow-hidden">
+              <LazyMount>
+                <NavigatorDotMatrix className="fade-in" background="#000000" />
+              </LazyMount>
+            </div>
+
+            {/* 悬浮时按距离错峰淡入的彩色像素层 */}
+            <div className="pointer-events-none absolute inset-[25%] grid grid-cols-12 grid-rows-12">
+              {HOVER_PIXELS.map((px, i) =>
+                px.color ? (
+                  <span
+                    key={i}
+                    className="opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-90 motion-reduce:transition-none"
+                    style={{ backgroundColor: px.color, transitionDelay: `${px.delay}ms` }}
+                  />
+                ) : (
+                  <span key={i} />
+                ),
+              )}
+            </div>
+
+            {/* LAMBDA 轴 */}
+            <div
+              className={`${eMono} absolute -bottom-9 left-0 flex w-full items-center justify-between px-[13%] text-[10px] text-[#9ca3af]`}
+            >
+              <span>0.1</span>
+              <span>1.0</span>
+              <span>10.0</span>
+            </div>
+            <p
+              className={`${eMono} absolute -bottom-[54px] left-1/2 -translate-x-1/2 text-[8px] tracking-[0.15em] text-[#4b5563]`}
+            >
+              LAMBDA (um)
+            </p>
+          </div>
+
+          {/* ── 右列：雷达图 + 读数 ── */}
+          <div className="reveal flex flex-col items-end gap-9">
+            <CommunityRadar dims={feature.dimensions} />
+            <div key={active} className="fade-in flex w-full flex-col items-end text-right">
+              <p className={`${eMono} text-[10px] text-[#9ca3af]`}>
+                {String(active + 1).padStart(2, "0")}/{String(features.length).padStart(2, "0")}
+              </p>
+              <h3 className={`${eMono} mt-1 text-[22px] font-bold text-[#f3f4f6] md:text-[26px]`}>
+                {feature.label}
+              </h3>
+              <p
+                className={`${eMono} mt-5 max-w-[320px] text-[11px] leading-[1.8] text-[#9ca3af]`}
+              >
+                {feature.description}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 上 / 下切换按钮 */}
+        <div className="absolute bottom-8 right-6 z-10 flex flex-col gap-1 md:bottom-[7%] md:right-[7%]">
+          <button
+            type="button"
+            aria-label="上一个维度"
+            onClick={() => go(active - 1)}
+            disabled={active === 0}
+            className="flex size-7 items-center justify-center rounded-[4px] border border-white/10 text-[#9ca3af] transition-colors hover:border-white/25 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+          >
+            <ChevronDownIcon className="size-3 rotate-180" />
+          </button>
+          <button
+            type="button"
+            aria-label="下一个维度"
+            onClick={() => go(active + 1)}
+            disabled={active === features.length - 1}
+            className="flex size-7 items-center justify-center rounded-[4px] border border-white/10 text-[#9ca3af] transition-colors hover:border-white/25 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+          >
+            <ChevronDownIcon className="size-3" />
+          </button>
         </div>
       </div>
     </section>
+  );
+}
+
+// 四维雷达图：中心 50/50，四个顶点各沿一条半轴伸出（交流↑ / 收获→ /
+// 提升↓ / 前沿←）。琥珀色数据区用 clip-path 多边形，配上四根轴向辐条和
+// 顶点圆点——clip-path / height / width / top / left 全都能用纯 CSS 过渡，
+// 切换维度时多边形平滑变形，不依赖任何动画库。
+const RADAR_MAX = 45; // 顶点最远伸到盒子的 45%（留出到最外层菱形环的余量）
+
+function CommunityRadar({ dims }: { dims: AiCommunityDimensions }) {
+  const { exchange, gain, growth, frontier } = dims;
+  const clip = `polygon(50% ${50 - RADAR_MAX * exchange}%, ${50 + RADAR_MAX * gain}% 50%, 50% ${
+    50 + RADAR_MAX * growth
+  }%, ${50 - RADAR_MAX * frontier}% 50%)`;
+
+  const spoke = "absolute bg-[#f59e0b]/70 transition-[width,height] duration-500 ease-out";
+  const dot =
+    "absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#f59e0b] transition-[top,left] duration-500 ease-out";
+
+  return (
+    <div className="relative size-[176px] shrink-0" aria-hidden="true">
+      {/* 菱形网格环 */}
+      {[1, 0.66, 0.33].map((s) => (
+        <div
+          key={s}
+          className="absolute inset-0 border border-white/10"
+          style={{ transform: `rotate(45deg) scale(${s})` }}
+        />
+      ))}
+      {/* 十字线 */}
+      <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-white/10" />
+      <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-white/10" />
+
+      {/* 琥珀色数据区 */}
+      <div
+        className="absolute inset-0 bg-[#f59e0b]/20 transition-[clip-path] duration-500 ease-out"
+        style={{ clipPath: clip, WebkitClipPath: clip }}
+      />
+
+      {/* 轴向辐条 */}
+      <div
+        className={`${spoke} bottom-1/2 left-1/2 w-px -translate-x-1/2`}
+        style={{ height: `${RADAR_MAX * exchange}%` }}
+      />
+      <div
+        className={`${spoke} left-1/2 top-1/2 h-px -translate-y-1/2`}
+        style={{ width: `${RADAR_MAX * gain}%` }}
+      />
+      <div
+        className={`${spoke} left-1/2 top-1/2 w-px -translate-x-1/2`}
+        style={{ height: `${RADAR_MAX * growth}%` }}
+      />
+      <div
+        className={`${spoke} right-1/2 top-1/2 h-px -translate-y-1/2`}
+        style={{ width: `${RADAR_MAX * frontier}%` }}
+      />
+
+      {/* 顶点圆点 */}
+      <span className={dot} style={{ left: "50%", top: `${50 - RADAR_MAX * exchange}%` }} />
+      <span className={dot} style={{ left: `${50 + RADAR_MAX * gain}%`, top: "50%" }} />
+      <span className={dot} style={{ left: "50%", top: `${50 + RADAR_MAX * growth}%` }} />
+      <span className={dot} style={{ left: `${50 - RADAR_MAX * frontier}%`, top: "50%" }} />
+
+      {/* 维度标签 */}
+      <span
+        className={`${eMono} absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-[#9ca3af]`}
+      >
+        交流
+      </span>
+      <span
+        className={`${eMono} absolute -right-8 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[#9ca3af]`}
+      >
+        收获
+      </span>
+      <span
+        className={`${eMono} absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-[#9ca3af]`}
+      >
+        提升
+      </span>
+      <span
+        className={`${eMono} absolute -left-8 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[#9ca3af]`}
+      >
+        前沿
+      </span>
+    </div>
   );
 }
