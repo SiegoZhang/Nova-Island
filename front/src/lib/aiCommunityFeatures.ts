@@ -66,7 +66,7 @@ export const aiCommunityFeatures: AiCommunityFeature[] = [
   {
     label: "精选沙龙",
     description:
-      "定期举办线上与线下沙龙，每场只聚焦一个具体议题，邀请一线实践者分享真实经验，并留足自由讨论的时间。人数有限、话题收敛，让每一次交流都能带走可执行的收获，而不是泛泛而谈。",
+      "定期举办线上与线下沙龙，每场只聚焦一个具体议题，邀请一线实践者分享真实经验，并留足自由讨论的时间。人数有限、话题收敛，让每次交流都能带走可执行的收获。",
     dimensions: { exchange: 0.86, gain: 0.74, growth: 0.6, frontier: 0.52 },
     // 钻石视频素材（assets/精选.mp4）点阵化，见 SalonDotMatrix——跟环形球体
     // 视频一样是纯色蓝背景，用色键抠像。
