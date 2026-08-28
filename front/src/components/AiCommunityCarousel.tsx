@@ -265,7 +265,7 @@ function CommunityRadar({ dims }: { dims: AiCommunityDimensions }) {
     "absolute size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_7px_rgba(255,255,255,0.55)] transition-[top,left] duration-500 ease-out";
 
   return (
-    <div className="relative size-[176px] shrink-0" aria-hidden="true">
+    <div className="relative size-[144px] shrink-0" aria-hidden="true">
       {/* 菱形网格环——由外到内逐层变淡 */}
       {RADAR_RING_SCALES.map((s, i) => (
         <div
