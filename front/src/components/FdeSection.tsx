@@ -1,106 +1,48 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { CardBreadcrumb } from "@/components/CardBreadcrumb";
-import { FdeBrandGrid } from "@/components/FdeBrandGrid";
 import { FdeGlobeLogos } from "@/components/FdeGlobeLogos";
-import { ArrowRightIcon } from "@/components/icons";
+import { ChevronDownIcon } from "@/components/icons";
+import { LazyMount } from "@/components/LazyMount";
 import { useSlideDeckOptional } from "@/components/SlideDeck";
-import { eEyebrowDark, eMono, ePageContainer } from "@/lib/eleven";
+import { eMono } from "@/lib/eleven";
 
-// FDE 卡片：右侧点阵地球「保持不动」，作为整张卡片固定的背景元素；切换分页
-// 时只有左侧文案 + CTA、以及浮在地球上方的那层卡片跟着换。三张卡都叠在同一
-// 个位置，靠 opacity + 轻微纵向位移做交叉淡入淡出，不再是整卡上下翻。
-// 悬浮在卡片区域时纵向滚轮翻页，一次手势翻一张，到首尾不再拦截。
+// FDE 业务板块——排版对齐 AI社群（AiCommunityCarousel）：
+//   · 左列：FDE 标题 + 简介 + 「了解详情」，滚动时保持不变。
+//   · 中间：点阵地球（FdeGlobeLogos），位置 / 尺寸跟 AI社群那尊人形一致，
+//     外面套同心圆 + 十字线 + 角标。滚轮不切换中间元素。
+//   · 右列：NN/03 编号 + 卡片标题 + 描述，随滚轮 / 上下按钮在 3 张卡之间切换。
+//
+// 交互跟 AiCommunityCarousel 同一套：纵向滚轮切右列，一次手势一格，空闲防抖，
+// 到首尾放行交还给 SlideDeck 翻屏。
+
+const WHEEL_GESTURE_IDLE_MS = 200;
 
 const highlights = [
   {
-    step: "01",
-    title: "深度合作头部企业",
+    step: "深度合作头部企业",
     description:
       "深入金融、工业、新零售等细分场景，与行业头部企业建立深度绑定的合作关系，而非浅层的项目外包。",
-    evidenceLabel: "合作品牌",
   },
   {
-    step: "02",
-    title: "客户平均效率提升",
+    step: "客户平均效率提升",
     description:
       "基于真实交付周期的量化统计，用工程化能力驱动业务流程实质提效，而不是停留在概念验证阶段。",
-    evidenceLabel: "效率提升案例",
   },
   {
-    step: "03",
-    title: "老客户年度续约率",
+    step: "老客户年度续约率",
     description:
       "高粘度的共创陪跑机制深受客户信赖——交付只是起点，我们持续陪伴客户从 0 到 1 再到规模化。",
-    evidenceLabel: "陪跑方法论",
   },
 ] as const;
 
-// 卡02「客户平均效率提升」的实证案例——用真实交付数据代替空泛的百分比。
-const efficiencyCases = [
-  { label: "新希望乳业", stat: "1:5", description: "新品 ROI 从 1:0.5 提升至 1:5" },
-  { label: "永和豆浆", stat: "1,200万+", description: "矩阵内容引流，单链接销售额" },
-  { label: "美妆投放", stat: "×5", description: "达人搜索效率最高提升" },
-] as const;
-
-// 卡03「老客户年度续约率」用六步陪跑方法论时间线回答「为什么客户会持续续约」。
-const partnershipSteps = [
-  { step: "01", label: "业务诊断", description: "明确目标与条件" },
-  { step: "02", label: "场景筛选", description: "评估价值与难度" },
-  { step: "03", label: "小范围试点", description: "约定责任与指标" },
-  { step: "04", label: "搭建与培训", description: "交付系统与规范" },
-  { step: "05", label: "验收复盘", description: "用指标检验效果" },
-  { step: "06", label: "规模化复制", description: "扩展更多岗位场景" },
-] as const;
-
-const SWITCH_MS = 520;
-
-function EfficiencyOverlay() {
-  return (
-    <div className="flex w-full max-w-[380px] flex-col gap-3">
-      {efficiencyCases.map((item) => (
-        <div
-          key={item.label}
-          className="rounded-xl border border-white/10 bg-white/[0.06] px-5 py-4 backdrop-blur-[3px]"
-        >
-          <p className={`text-[26px] leading-none font-bold text-white md:text-[30px] ${eMono}`}>
-            {item.stat}
-          </p>
-          <p className="mt-2 text-[13px] font-medium text-white/80">{item.label}</p>
-          <p className="mt-1 text-[12px] leading-[1.5] text-white/50">{item.description}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function TimelineOverlay() {
-  return (
-    <div className="grid w-full max-w-[400px] grid-cols-2 gap-2.5">
-      {partnershipSteps.map((item) => (
-        <div
-          key={item.step}
-          className="rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-3 backdrop-blur-[3px]"
-        >
-          <span className="flex size-6 items-center justify-center rounded-full bg-white/10 text-[11px] font-semibold text-white/70">
-            {item.step}
-          </span>
-          <p className="mt-2 text-[13px] font-medium text-white">{item.label}</p>
-          <p className="mt-0.5 text-[11px] leading-[1.4] text-white/45">{item.description}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function FdeSection() {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const activeIndexRef = useRef(0);
-  const isAnimatingRef = useRef(false);
-  const stackRef = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+  const activeRef = useRef(0);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const wheelIdleRef = useRef<number | null>(null);
 
   // 翻页粒子形变过渡：点阵地球注册为「fde」落点锚，整屏内容随 --ai-fde-t
   // 反向淡入（粒子层炸开成球后交回给真正的点阵地球），见 AiFdeParticleMorph。
@@ -111,129 +53,152 @@ export function FdeSection() {
     return () => registerMorphAnchor?.("fde", null);
   }, [registerMorphAnchor]);
 
-  const goTo = (index: number) => {
-    if (index < 0 || index >= highlights.length || isAnimatingRef.current) return;
-    isAnimatingRef.current = true;
-    activeIndexRef.current = index;
-    setActiveIndex(index);
-    window.setTimeout(() => {
-      isAnimatingRef.current = false;
-    }, SWITCH_MS);
-  };
-
-  useEffect(() => {
-    const stack = stackRef.current;
-    if (!stack) return;
-
-    const handleWheel = (event: WheelEvent) => {
-      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
-      const direction = event.deltaY > 0 ? 1 : -1;
-      const nextIndex = activeIndexRef.current + direction;
-      if (nextIndex < 0 || nextIndex >= highlights.length) return;
-      event.preventDefault();
-      goTo(nextIndex);
-    };
-
-    stack.addEventListener("wheel", handleWheel, { passive: false });
-    return () => stack.removeEventListener("wheel", handleWheel);
+  const go = useCallback((next: number) => {
+    if (next < 0 || next >= highlights.length || next === activeRef.current) return;
+    activeRef.current = next;
+    setActive(next);
   }, []);
 
-  return (
-    <section
-      id="fde"
-      className="w-full"
-      style={{ opacity: "clamp(0, calc((var(--ai-fde-t, 0) - 0.88) / 0.12), 1)" }}
-    >
-      <div className={ePageContainer}>
-        <div data-parallax className="reveal mb-10 text-center">
-          <p data-title-reveal="1" className={eEyebrowDark}>FDE业务</p>
-          <h2
-            data-title-reveal="2"
-            className="mt-4 text-[32px] leading-[1.1] font-medium tracking-[-0.02em] text-[#f5f5f5] md:text-[40px]"
-          >
-            从认知到落地的工程化路径
-          </h2>
-          <p
-            data-title-reveal="3"
-            className="mx-auto mt-3 max-w-[540px] text-[16px] leading-[1.65] text-[#a1a1aa]"
-          >
-            Forward Deployed Engineer — 区别于标准化方案，我们深入客户的真实业务场景，以工程化能力驱动
-            AI 的规模化落地与持续见效。
-          </p>
-        </div>
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
 
-        <div
-          ref={stackRef}
-          // 卡片宽度不变（贴 ePageContainer，距左右网格竖线 36px），桌面高度
-          // 改由 16:9 长宽比决定，跟 AI社群 轮播卡在满宽下的比例保持一致；
-          // 移动端卡片转竖向，沿用固定高度。
-          className="reveal relative h-[560px] overflow-hidden rounded-2xl border border-white/10 bg-[#101012] md:aspect-auto md:h-[min(58vh,620px)]"
-        >
-          {/* 固定不动的点阵地球——整张卡片共用一个实例，切换分页时它不参与
-              任何过渡。占右半，桌面才显示。 */}
-          <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[54%] items-center justify-center md:flex">
-            {/* globeAnchorRef 精确框住点阵地球本体（不是 54% 的外框），
-                作为翻页粒子过渡的「fde」落点锚。 */}
-            <div
-              ref={globeAnchorRef}
-              className="relative aspect-square h-full max-h-[440px] w-full max-w-[440px]"
+    const onWheel = (event: WheelEvent) => {
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      const dir = event.deltaY > 0 ? 1 : -1;
+      const next = activeRef.current + dir;
+      if (next < 0 || next >= highlights.length) return; // 首尾放行 → SlideDeck 翻屏
+
+      event.preventDefault();
+      if (wheelIdleRef.current === null) {
+        go(next);
+      } else {
+        window.clearTimeout(wheelIdleRef.current);
+      }
+      wheelIdleRef.current = window.setTimeout(() => {
+        wheelIdleRef.current = null;
+      }, WHEEL_GESTURE_IDLE_MS);
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      if (wheelIdleRef.current !== null) window.clearTimeout(wheelIdleRef.current);
+    };
+  }, [go]);
+
+  const item = highlights[active];
+
+  return (
+    <section id="fde" className="w-full">
+      <div
+        ref={rootRef}
+        style={{ opacity: "clamp(0, calc((var(--ai-fde-t, 0) - 0.88) / 0.12), 1)" }}
+        className="relative mx-auto flex min-h-[100svh] w-full max-w-[1440px] flex-col overflow-hidden md:h-[100svh]"
+      >
+        <div className="relative z-10 flex flex-1 flex-col gap-14 px-6 py-24 md:grid md:grid-cols-[minmax(240px,320px)_minmax(0,1fr)_minmax(280px,340px)] md:items-center md:gap-8 md:px-12 md:py-0">
+          {/* ── 左列 telemetry ── */}
+          <div className="reveal flex flex-col gap-7">
+            <div>
+              <h2
+                data-title-reveal="1"
+                className={`${eMono} whitespace-nowrap text-[clamp(40px,5vw,56px)] font-bold leading-[0.95] tracking-[-0.02em] text-[#f3f4f6]`}
+              >
+                FDE业务
+              </h2>
+              <p data-title-reveal="2" className={`${eMono} mt-2 text-[12px] text-[#9ca3af]`}>
+                新岛FDE
+              </p>
+            </div>
+            <div>
+              <p className={`${eMono} text-[9px] uppercase tracking-[0.15em] text-[#4b5563]`}>Intro</p>
+              <p className={`${eMono} mt-2 text-[11px] leading-[1.75] text-[#9ca3af]`}>
+                Forward Deployed Engineer——区别于标准化方案，我们把工程师直接派到客户的真实业务
+                现场，深入具体场景做定制交付，用工程化能力驱动 AI 的规模化落地与持续见效，而不是
+                停在概念验证阶段。
+              </p>
+            </div>
+            <Link
+              href="/fde"
+              className={`${eMono} inline-flex w-fit items-center rounded-[4px] border border-[#9ca3af] bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#070709] transition-colors hover:bg-[#e5e7eb]`}
             >
-              <FdeGlobeLogos showLogos={false} className="size-full" />
+              了解详情
+            </Link>
+          </div>
+
+          {/* ── 中间：点阵地球（位置 / 尺寸对齐 AI社群人形）── */}
+          <div
+            data-parallax
+            className="reveal relative mx-auto aspect-square w-[min(88vw,520px)] md:w-[min(60vh,600px)]"
+          >
+            {/* 外圈大圆 + 十字线 */}
+            <div className="absolute inset-[-2%] rounded-full border border-white/10" />
+            <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-white/10" />
+            <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-white/10" />
+            <span
+              className={`${eMono} absolute top-1/2 -left-[7%] -translate-y-1/2 text-[12px] text-white/25`}
+            >
+              +
+            </span>
+            <span
+              className={`${eMono} absolute top-1/2 -right-[7%] -translate-y-1/2 text-[12px] text-white/25`}
+            >
+              +
+            </span>
+
+            {/* 内同心圆 */}
+            <div className="absolute inset-[19%] rounded-full border border-white/[0.06]" />
+
+            {/* 点阵地球本体——globeAnchorRef 同时是翻页粒子过渡的「fde」落点锚。 */}
+            <div ref={globeAnchorRef} className="absolute inset-[2%] overflow-hidden">
+              <LazyMount>
+                <FdeGlobeLogos showLogos={false} className="size-full" />
+              </LazyMount>
             </div>
           </div>
 
-          {highlights.map(({ step, title, description }, index) => {
-            const active = index === activeIndex;
-            const offset = index < activeIndex ? -16 : 16;
-            return (
-              <div
-                key={step}
-                aria-hidden={!active}
-                className="absolute inset-0 px-8 py-10 transition-[opacity,transform] duration-500 ease-out md:px-14 md:py-16"
-                style={{
-                  opacity: active ? 1 : 0,
-                  transform: active ? "translateY(0)" : `translateY(${offset}px)`,
-                  pointerEvents: active ? "auto" : "none",
-                  zIndex: active ? 2 : 1,
-                }}
+          {/* ── 右列：三张卡片的内容，随滚轮切换 ── */}
+          <div className="reveal flex flex-col items-end gap-9 md:pr-12">
+            <div key={active} className="flex w-full flex-col items-end text-right">
+              <p className={`${eMono} rise-in text-[10px] text-[#9ca3af]`}>
+                {String(active + 1).padStart(2, "0")}/{String(highlights.length).padStart(2, "0")}
+              </p>
+              <h3
+                className={`${eMono} rise-in mt-1 text-[22px] font-bold text-[#f3f4f6] md:text-[26px]`}
+                style={{ animationDelay: "90ms" }}
               >
-                <div className="grid h-full items-center gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] md:gap-12">
-                  <div className="max-w-[480px]">
-                    <span className={`${eMono} text-[13px] tracking-[0.04em] text-white/35`}>
-                      {step} / 0{highlights.length}
-                    </span>
-                    <h3 className="mt-3 text-[24px] leading-[1.3] font-semibold text-[#F8FAFA] md:text-[32px]">
-                      {title}
-                    </h3>
-                    <p className="mt-4 text-[15px] leading-[1.7] text-[#A3A5A6] md:text-[16px]">
-                      {description}
-                    </p>
-                    <Link
-                      href="/fde"
-                      className="mt-8 inline-flex w-fit items-center justify-center gap-2 rounded-full bg-[#1A38CE] px-7 py-3 text-[14px] font-semibold tracking-[-0.01em] text-white transition-colors duration-200 hover:bg-[#1A38CE]/90 active:scale-[0.97]"
-                    >
-                      深度了解
-                      <ArrowRightIcon className="size-3.5" strokeWidth={1.8} />
-                    </Link>
-                  </div>
+                {item.step}
+              </h3>
+              <p
+                className={`${eMono} rise-in mt-5 max-w-[320px] text-[11px] leading-[1.8] text-[#9ca3af]`}
+                style={{ animationDelay: "180ms" }}
+              >
+                {item.description}
+              </p>
+            </div>
+          </div>
+        </div>
 
-                  {/* 浮在地球上方、随分页切换的那层卡片。桌面对齐地球的方形区域。 */}
-                  <div className="relative hidden aspect-square h-full max-h-[440px] w-full max-w-[440px] items-center justify-center md:flex">
-                    {index === 0 && <FdeBrandGrid />}
-                    {index === 1 && <EfficiencyOverlay />}
-                    {index === 2 && <TimelineOverlay />}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          <CardBreadcrumb
-            currentIndex={activeIndex}
-            total={highlights.length}
-            onSelect={goTo}
-            className="absolute bottom-8 left-8 z-30 md:bottom-12 md:left-14"
-          />
+        {/* 上 / 下切换按钮 */}
+        <div className="absolute bottom-8 right-6 z-10 flex flex-col gap-1 md:bottom-[7%] md:right-[7%]">
+          <button
+            type="button"
+            aria-label="上一张卡片"
+            onClick={() => go(active - 1)}
+            disabled={active === 0}
+            className="flex size-7 items-center justify-center rounded-[4px] border border-white/10 text-[#9ca3af] transition-colors hover:border-white/25 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+          >
+            <ChevronDownIcon className="size-3 rotate-180" />
+          </button>
+          <button
+            type="button"
+            aria-label="下一张卡片"
+            onClick={() => go(active + 1)}
+            disabled={active === highlights.length - 1}
+            className="flex size-7 items-center justify-center rounded-[4px] border border-white/10 text-[#9ca3af] transition-colors hover:border-white/25 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+          >
+            <ChevronDownIcon className="size-3" />
+          </button>
         </div>
       </div>
     </section>
