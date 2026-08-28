@@ -33,15 +33,15 @@ const WHEEL_GESTURE_IDLE_MS = 200;
 // 松手后，会由 /api/dev/dot-tuning 直接写回这个常量块——不需要手动抄数值。
 // 这些是首页实例专用，跟 /ai 手风琴用的 NAVIGATOR_DEFAULTS 互不影响。
 const AI_COMMUNITY_NAVIGATOR_DEFAULTS = {
-  sizePercent: 128,
+  sizePercent: 130,
   rightShiftPercent: 0,
   downShiftPercent: 0,
-  density: 1.25,
+  density: 2,
   dotMaxSize: 2.7,
   jitter: 0,
   edgeSpray: 0,
   sizeVariance: 0.46,
-  pointerRadius: 0.28,
+  pointerRadius: 0.15,
   // 鼠标划过时把光标周围一圈粒子往外挤一点（环形推力 + 每点随机偏转），
   // 不是清空——光标正中心几乎不推，粒子只是变稀。冲散和吸附反向，吸附归 0。
   pointerAttract: 0,
@@ -169,7 +169,9 @@ export function AiCommunityCarousel() {
                 sizeVariance 把规整网格点阵打散成飘散的粒子云——人像轮廓处
                 的点沿径向喷出、每点大小随机，边缘碎成不连续颗粒。鼠标划过
                 时光标附近的粒子被冲散拨开（pointerScatter），不染色、不放大。 */}
-            <div className="absolute inset-[-10%] overflow-hidden">
+            {/* 渲染区上/左/右撑出去，底边只到方盒下沿——再往下是 LAMBDA 轴的
+                地盘，不让粒子盖住那排数字和刻度。 */}
+            <div className="absolute -top-[10%] -left-[10%] -right-[10%] bottom-0 overflow-hidden">
               <LazyMount>
                 <NavigatorDotMatrix
                   className="fade-in"
@@ -181,16 +183,16 @@ export function AiCommunityCarousel() {
               </LazyMount>
             </div>
 
-            {/* LAMBDA 轴 */}
+            {/* LAMBDA 轴 —— z-10 压在粒子渲染区之上，确保不被遮 */}
             <div
-              className={`${eMono} absolute -bottom-9 left-0 flex w-full items-center justify-between px-[13%] text-[10px] text-[#9ca3af]`}
+              className={`${eMono} absolute -bottom-9 left-0 z-10 flex w-full items-center justify-between px-[13%] text-[10px] text-[#9ca3af]`}
             >
               <span>0.1</span>
               <span>1.0</span>
               <span>10.0</span>
             </div>
             <p
-              className={`${eMono} absolute -bottom-[54px] left-1/2 -translate-x-1/2 text-[8px] tracking-[0.15em] text-[#4b5563]`}
+              className={`${eMono} absolute -bottom-[54px] left-1/2 z-10 -translate-x-1/2 text-[8px] tracking-[0.15em] text-[#4b5563]`}
             >
               LAMBDA (um)
             </p>
