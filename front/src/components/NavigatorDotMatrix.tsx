@@ -109,11 +109,15 @@ const VERTEX_SHADER = /* glsl */ `
     vec3 warpedPosition = vec3(jittered, 0.0);
     warpedPosition.xy += toPointer * pointerGlow * uPointerAttract;
 
-    // 冲散：沿背离光标方向推开（单位向量 → 越近推得越狠靠 pointerFalloff），
-    // 再叠一点每点固定的随机偏转，避免推成一个规整的圆洞。
+    // 冲散：把光标周围一圈粒子往外挤一点，不是清空。推力用环形分布
+    // （ring = 4t(1-t)，t 是到光标的归一化距离）——正中心几乎不推、
+    // 半径中段推得最多、边缘归零，所以光标处始终留着点、只是变稀。
+    // 再叠一点每点固定的随机偏转，避免挤出一个规整的圆环。
+    float scatterT = clamp(pointerDist / max(uPointerRadius, 1e-4), 0.0, 1.0);
+    float scatterRing = 4.0 * scatterT * (1.0 - scatterT);
     vec2 awayDir = -toPointer / (pointerDist + 1e-4);
-    vec2 scatterNoise = (hash22(aUv * 217.3) - 0.5) * 1.1;
-    float scatterAmt = pointerFalloff * uPointerActivity * step(0.003, mask) * uPointerScatter;
+    vec2 scatterNoise = (hash22(aUv * 217.3) - 0.5) * 0.45;
+    float scatterAmt = scatterRing * uPointerActivity * step(0.003, mask) * uPointerScatter;
     warpedPosition.xy += (awayDir + scatterNoise) * scatterAmt;
 
     vec4 mvPosition = modelViewMatrix * vec4(warpedPosition, 1.0);
