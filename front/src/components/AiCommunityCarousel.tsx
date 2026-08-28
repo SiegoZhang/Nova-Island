@@ -34,7 +34,7 @@ const WHEEL_GESTURE_IDLE_MS = 200;
 // 松手后，会由 /api/dev/dot-tuning 直接写回这个常量块——不需要手动抄数值。
 // 这些是首页实例专用，跟 /ai 手风琴用的 NAVIGATOR_DEFAULTS 互不影响。
 const AI_COMMUNITY_NAVIGATOR_DEFAULTS = {
-  sizePercent: 81,
+  sizePercent: 91,
   rightShiftPercent: 4,
   downShiftPercent: -2,
   density: 2,
@@ -201,14 +201,14 @@ export function AiCommunityCarousel() {
 
             {/* LAMBDA 轴 —— z-10 压在粒子渲染区之上，确保不被遮 */}
             <div
-              className={`${eMono} absolute -bottom-4 left-0 z-10 flex w-full items-center justify-between px-[13%] text-[10px] text-[#9ca3af]`}
+              className={`${eMono} absolute -bottom-11 left-0 z-10 flex w-full items-center justify-between px-[13%] text-[10px] text-[#9ca3af]`}
             >
               <span>0.1</span>
               <span>1.0</span>
               <span>10.0</span>
             </div>
             <p
-              className={`${eMono} absolute -bottom-[34px] left-1/2 z-10 -translate-x-1/2 text-[8px] tracking-[0.15em] text-[#4b5563]`}
+              className={`${eMono} absolute -bottom-[68px] left-1/2 z-10 -translate-x-1/2 text-[8px] tracking-[0.15em] text-[#4b5563]`}
             >
               LAMBDA (um)
             </p>
