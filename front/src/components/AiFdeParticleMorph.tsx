@@ -7,14 +7,20 @@ import { getClampedDpr } from "@/lib/dotSystem/runtime";
 import type { DeckTransitionState, MorphAnchorKey } from "@/components/SlideDeck";
 
 // AI社群 → FDE 翻页时的「共享粒子形变层」：一整块常驻全屏 fixed 的
-// THREE.Points，随 SlideDeck 写出的过渡进度 uT（0..1）把每颗粒子从「人形」
-// （定格采样 navigator.mp4 一帧）插值到「球面」（程序化 Fibonacci 球），
-// 中途收拢成一团抖动的密球。两端（uT≈0 / uT≈1）整层不可见，交给两屏各自
-// 原本的点阵组件 + 文字（它们由 --ai-fde-t 驱动淡入淡出）。
+// THREE.Points，把每颗粒子从「人形」（定格采样 navigator.mp4 一帧）插值到
+// 「球面」（程序化 Fibonacci 球），中途收拢成一团抖动的密球。
+//
+// 关键：形变**不跟随页面翻动速度**。SlideDeck 的 transitionRef.t 只用来定
+// 方向（0 = 回 AI，1 = 去 FDE，滚轮一拨、scroll-snap 一吸附就到位）；
+// displayT 按固定时长 MORPH_DURATION_S 朝那个方向匀速推进，所以用户飞快
+// 甩一下滚轮，粒子也是慢慢化过去。displayT 同时写回 --ai-fde-t，让两屏
+// 内容的淡入淡出也跟着这条慢时间线（不是滚动位置）。
 //
 // 只服务这一个交界；/ai、/fde 等页面不经过 SlideDeck，不会挂载这个组件。
 
 const PARTICLE_COUNT = 14000;
+// 一次完整形变（人形 ↔ 地球）的时长，秒。跟滚动快慢无关。
+const MORPH_DURATION_S = 1.8;
 // 人形定格采样网格（navigator.mp4 是 16:9），亮度过阈的格子才算「人身上的点」。
 const SAMPLE_COLS = 168;
 const SAMPLE_ROWS = 94;
@@ -331,13 +337,33 @@ export function AiFdeParticleMorph({
 
     const fallbackRect = new THREE.Vector4(0, 0, 0.28, 0.4);
 
-    function tick() {
+    const root = document.documentElement;
+    let lastNow = performance.now();
+    let lastWritten = -1;
+
+    function tick(now: number) {
       raf = requestAnimationFrame(tick);
 
       const st = transitionRef.current;
-      const target = st.t;
-      displayT += (target - displayT) * 0.25;
-      if (Math.abs(target - displayT) < 0.0015) displayT = target;
+      // target 只提供方向：0 = 回 AI，1 = 去 FDE。displayT 按固定时长匀速
+      // 逼近它，与滚动快慢无关。
+      const target = st.t < 0.5 ? 0 : 1;
+      const dt = Math.min(0.05, (now - lastNow) / 1000);
+      lastNow = now;
+      const dir = Math.sign(target - displayT);
+      if (dir !== 0) {
+        displayT += dir * (dt / MORPH_DURATION_S);
+        if ((dir > 0 && displayT >= target) || (dir < 0 && displayT <= target)) {
+          displayT = target;
+        }
+      }
+
+      // displayT 同时驱动两屏内容的淡入淡出（跟着慢时间线，不是滚动位置）。
+      const rounded = Math.round(displayT * 1000) / 1000;
+      if (rounded !== lastWritten) {
+        root.style.setProperty("--ai-fde-t", rounded.toFixed(3));
+        lastWritten = rounded;
+      }
 
       const visible = displayT > 0.004 && displayT < 0.996;
       if (!visible) {
@@ -379,6 +405,7 @@ export function AiFdeParticleMorph({
       disposed = true;
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", onResize);
+      root.style.removeProperty("--ai-fde-t");
       geometry?.dispose();
       material?.dispose();
       renderer?.dispose();

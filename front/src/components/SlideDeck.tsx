@@ -108,6 +108,12 @@ export function SlideDeck({
       window.matchMedia("(min-width: 768px) and (pointer: fine)").matches,
     () => false,
   );
+  // 粒子层开着时，--ai-fde-t 由粒子层按自己的慢节奏写（不跟滚动速度）；
+  // 关着时才由这里按滚动位置写，好让无粒子层的降级路径仍有交叉淡入淡出。
+  const morphEnabledRef = useRef(false);
+  useEffect(() => {
+    morphEnabledRef.current = morphEnabled;
+  }, [morphEnabled]);
 
   const register = useCallback((el: HTMLElement) => {
     const list = slidesRef.current;
@@ -178,7 +184,11 @@ export function SlideDeck({
         transitionRef.current.t = t;
         transitionRef.current.aShiftPx = aShiftPx;
         transitionRef.current.bShiftPx = bShiftPx;
-        scroller.style.setProperty("--ai-fde-t", t.toFixed(4));
+        // 粒子层没挂载时（移动端 / reduced-motion）才在这里按滚动位置写，
+        // 挂载了就交给粒子层按自己的时间线写。
+        if (!morphEnabledRef.current) {
+          document.documentElement.style.setProperty("--ai-fde-t", t.toFixed(4));
+        }
       }
     };
 

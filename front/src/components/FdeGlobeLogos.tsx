@@ -43,7 +43,7 @@ const GLOBE_DEFAULTS = {
   sizePercent: 129,
   // 亮度→颜色 4 段色阶：暗部贴卡片底色 #101012 融进背景，只有最亮端是
   // 品牌蓝高光。
-  colorDark: "#1b1b1e",
+  colorDark: "#d6d6d6",
   colorMid1: "#2b3350",
   colorMid2: "#1e34a0",
   colorHigh: "#1a38ce",
