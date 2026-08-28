@@ -17,36 +17,14 @@ import { eMono } from "@/lib/eleven";
 //   · 左列（telemetry）：AI社群标题 + 简介 + 「了解详情」，滚动时保持不变。
 //   · 中间（target-coordinate-area）：始终是「成为领航员」那尊点阵人像
 //     （NavigatorDotMatrix），外面套一实一虚两个方框 + 同心圆 + 十字线 +
-//     LAMBDA 轴。鼠标悬浮时两个方框错位交叠、人像上浮现一小片红/蓝/琥珀
-//     像素。滚轮不切换中间元素。
+//     LAMBDA 轴。鼠标悬浮时两个方框错位交叠，人像上光标附近的粒子稍微
+//     收拢（不染色）。滚轮不切换中间元素。
 //   · 右列：NN/06 编号 + 维度名 + 描述 + 四维雷达图（交流 / 收获 / 提升 /
 //     前沿），随滚轮或上下按钮在 6 个维度之间切换。
 //
 // 交互：悬浮在仪表盘上纵向滚轮切换右侧维度，一次手势切一格（空闲重置
 // 防抖，跟 TeamSection/FdeSection 同一套），到首尾不再拦截，把滚动交还
 // 给 SlideDeck 翻屏。
-
-// 中间人像上悬浮浮现的像素色块：12×12 网格，按到中心的距离分层上色——
-// 白核 → 琥珀环 → 红/蓝交错外圈，再抽稀约 1/3 形成散点而不是实心圆斑。
-// 渲染成一层覆盖在 NavigatorDotMatrix 上、默认透明、group-hover 时按距离
-// 错峰淡入的方块。
-const HOVER_PIXELS: { color: string; delay: number }[] = (() => {
-  const cells: { color: string; delay: number }[] = [];
-  for (let r = 0; r < 12; r++) {
-    for (let c = 0; c < 12; c++) {
-      const dx = c - 5.5;
-      const dy = r - 5.5;
-      const d = Math.hypot(dx, dy);
-      let color = "";
-      if (d <= 1.7) color = "#ffffff";
-      else if (d <= 3.1) color = "#f59e0b";
-      else if (d <= 5) color = (r + c) % 2 === 0 ? "#dc2626" : "#1d4ed8";
-      if (color && (r * 7 + c * 3) % 3 === 0) color = "";
-      cells.push({ color, delay: color ? Math.round(d * 45) : 0 });
-    }
-  }
-  return cells;
-})();
 
 const WHEEL_GESTURE_IDLE_MS = 200;
 
@@ -163,14 +141,13 @@ export function AiCommunityCarousel() {
             {/* 点阵人像（常驻，不随滚动切换）。放大铺满整个 target 区、
                 居中，内部再放大到 120%。density/dotMaxSize/jitter/edgeSpray/
                 sizeVariance 把规整网格点阵打散成飘散的粒子云——人像轮廓处
-                的点沿径向喷出、每点大小随机，边缘碎成不连续颗粒。hoverColor
-                让光标附近的粒子染成琥珀色。 */}
+                的点沿径向喷出、每点大小随机，边缘碎成不连续颗粒。悬浮时
+                光标附近的粒子只做轻微收拢（pointerAttract），不染色、不放大。 */}
             <div className="absolute inset-[-2%] overflow-hidden">
               <LazyMount>
                 <NavigatorDotMatrix
                   className="fade-in"
                   background="#000000"
-                  hoverColor="#f59e0b"
                   sizePercent={120}
                   rightShiftPercent={0}
                   density={2.4}
@@ -178,23 +155,10 @@ export function AiCommunityCarousel() {
                   jitter={0.006}
                   edgeSpray={0.05}
                   sizeVariance={0.6}
+                  pointerAttract={0.22}
+                  pointerSizeBoost={0}
                 />
               </LazyMount>
-            </div>
-
-            {/* 悬浮时按距离错峰淡入的彩色像素层 */}
-            <div className="pointer-events-none absolute inset-[12%] grid grid-cols-12 grid-rows-12">
-              {HOVER_PIXELS.map((px, i) =>
-                px.color ? (
-                  <span
-                    key={i}
-                    className="opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-90 motion-reduce:transition-none"
-                    style={{ backgroundColor: px.color, transitionDelay: `${px.delay}ms` }}
-                  />
-                ) : (
-                  <span key={i} />
-                ),
-              )}
             </div>
 
             {/* LAMBDA 轴 */}

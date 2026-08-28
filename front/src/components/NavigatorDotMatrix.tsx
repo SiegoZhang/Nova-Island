@@ -526,9 +526,11 @@ const NAVIGATOR_DEFAULTS = {
   colorLow: "#d0d0d0",
   colorHigh: "#ffffff",
   colorGlow: "#e8e8e8",
-  /** 鼠标邻近染色的目标色 + 强度（0=不染色，1=光标处完全变成该色）。 */
+  /** 鼠标邻近染色的目标色 + 强度（0=不染色，1=光标处完全变成该色）。
+   *  默认 0：悬浮只做粒子收拢，不染色。着色器/uniform 保留，想启用把
+   *  hoverStrength 调回 1 即可。 */
   hoverColor: "#f59e0b",
-  hoverStrength: 1,
+  hoverStrength: 0,
   /** 粒子散布：默认全 0 = 规整网格点阵（/ai 页手风琴维持原样）。
    *  首页「频谱仪表盘」传非 0 值把人像打散成飘散的粒子云。 */
   jitter: 0,
@@ -570,6 +572,10 @@ export interface NavigatorDotMatrixProps {
   edgeSpray?: number;
   /** 每点大小的随机幅度 0~1（0=关闭）。 */
   sizeVariance?: number;
+  /** 鼠标"收拢"力度——半径内的点朝光标偏移的比例，默认 0.35。 */
+  pointerAttract?: number;
+  /** 鼠标悬浮处点的额外放大倍数，默认 1.2。传小值/0 只收拢不放大。 */
+  pointerSizeBoost?: number;
 }
 
 export function NavigatorDotMatrix({
@@ -583,6 +589,8 @@ export function NavigatorDotMatrix({
   jitter: jitterProp,
   edgeSpray: edgeSprayProp,
   sizeVariance: sizeVarianceProp,
+  pointerAttract: pointerAttractProp,
+  pointerSizeBoost: pointerSizeBoostProp,
 }: NavigatorDotMatrixProps) {
   const [density, setDensity] = useState<number>(densityProp ?? NAVIGATOR_DEFAULTS.density);
   const [dotMaxSize, setDotMaxSize] = useState<number>(
@@ -610,10 +618,10 @@ export function NavigatorDotMatrix({
   );
   const [pointerRadius, setPointerRadius] = useState<number>(NAVIGATOR_DEFAULTS.pointerRadius);
   const [pointerAttract, setPointerAttract] = useState<number>(
-    NAVIGATOR_DEFAULTS.pointerAttract,
+    pointerAttractProp ?? NAVIGATOR_DEFAULTS.pointerAttract,
   );
   const [pointerSizeBoost, setPointerSizeBoost] = useState<number>(
-    NAVIGATOR_DEFAULTS.pointerSizeBoost,
+    pointerSizeBoostProp ?? NAVIGATOR_DEFAULTS.pointerSizeBoost,
   );
   const [jitter, setJitter] = useState<number>(jitterProp ?? NAVIGATOR_DEFAULTS.jitter);
   const [edgeSpray, setEdgeSpray] = useState<number>(
