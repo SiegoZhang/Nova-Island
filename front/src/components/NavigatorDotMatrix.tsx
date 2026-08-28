@@ -45,6 +45,9 @@ const VERTEX_SHADER = /* glsl */ `
   // 鼠标"冲散"：半径内的点沿背离光标的方向被推开（越靠近推得越狠），
   // 配一点每点随机的偏转，看起来像划过时把粒子拨开、身后再涌回。
   uniform float uPointerScatter;
+  // 鼠标"移动能量"（0~1）：划得越快越大，停下来就迅速衰减回 0。冲散只
+  // 吃这个量 → 光标不动时粒子自己聚拢回去，不是一直被顶开。
+  uniform float uPointerMotion;
   // ── 粒子散布（0 = 关闭，回到规整网格点阵）────────────────────
   uniform float uJitter;       // 均匀位置抖动，打散"网格感"（本地坐标单位，全幅=1）
   uniform float uEdgeSpray;    // 人像轮廓处的点额外沿径向往外喷，形成飘散的边缘
@@ -126,7 +129,7 @@ const VERTEX_SHADER = /* glsl */ `
     float sSin = sin(sAng);
     vec2 scatterDir = vec2(awayDir.x * sCos - awayDir.y * sSin, awayDir.x * sSin + awayDir.y * sCos);
     vec2 scatterJit = (hash22(aUv * 91.7) - 0.5) * 1.4;
-    float scatterAmt = scatterRing * uPointerActivity * step(0.003, mask) * uPointerScatter;
+    float scatterAmt = scatterRing * uPointerMotion * step(0.003, mask) * uPointerScatter;
     warpedPosition.xy += (scatterDir * sMag + scatterJit) * scatterAmt;
 
     vec4 mvPosition = modelViewMatrix * vec4(warpedPosition, 1.0);
@@ -303,6 +306,7 @@ function NavigatorDotCore({
         uPointerAttract: { value: pointerAttract },
         uPointerSizeBoost: { value: pointerSizeBoost },
         uPointerScatter: { value: pointerScatter },
+        uPointerMotion: { value: 0 },
       },
       vertexShader: VERTEX_SHADER,
       fragmentShader: FRAGMENT_SHADER,
@@ -339,6 +343,14 @@ function NavigatorDotCore({
     let isVisible = true;
     let referenceWidth = 0;
     const pointerHover = createPointerHoverState();
+    // 冲散只吃"移动能量"：每次 pointermove 按这一步的位移累加，renderOnce
+    // 里每帧乘 POINTER_MOTION_DECAY 衰减。光标停住 → 能量掉回 0 → 粒子聚拢。
+    const POINTER_MOTION_GAIN = 9;
+    const POINTER_MOTION_DECAY = 0.86;
+    let pointerMotion = 0;
+    let lastPointerU = 0;
+    let lastPointerV = 0;
+    let hasLastPointer = false;
 
     function handlePointerMove(event: PointerEvent) {
       if (!container) return;
@@ -347,10 +359,18 @@ function NavigatorDotCore({
       const u = (event.clientX - rect.left) / rect.width;
       const v = (event.clientY - rect.top) / rect.height;
       pointerHover.setActive(u - 0.5, 0.5 - v);
+      if (hasLastPointer) {
+        const step = Math.hypot(u - lastPointerU, v - lastPointerV);
+        pointerMotion = Math.min(1, pointerMotion + step * POINTER_MOTION_GAIN);
+      }
+      lastPointerU = u;
+      lastPointerV = v;
+      hasLastPointer = true;
     }
 
     function handlePointerLeave() {
       pointerHover.setInactive();
+      hasLastPointer = false;
     }
 
     container.addEventListener("pointermove", handlePointerMove);
@@ -411,6 +431,9 @@ function NavigatorDotCore({
       drawSample();
       const pointerActivity = pointerHover.tick();
       material.uniforms.uPointerActivity.value = pointerActivity;
+      pointerMotion *= POINTER_MOTION_DECAY;
+      if (pointerMotion < 0.001) pointerMotion = 0;
+      material.uniforms.uPointerMotion.value = pointerMotion;
       (material.uniforms.uPointer.value as THREE.Vector2).set(pointerHover.x, pointerHover.y);
       renderer.render(scene, camera);
     }

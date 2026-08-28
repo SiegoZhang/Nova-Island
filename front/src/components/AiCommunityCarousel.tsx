@@ -36,7 +36,7 @@ const AI_COMMUNITY_NAVIGATOR_DEFAULTS = {
   sizePercent: 128,
   rightShiftPercent: 0,
   downShiftPercent: 0,
-  density: 2,
+  density: 1.25,
   dotMaxSize: 2.7,
   jitter: 0,
   edgeSpray: 0,
