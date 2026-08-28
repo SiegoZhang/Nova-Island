@@ -41,7 +41,7 @@ const AI_COMMUNITY_NAVIGATOR_DEFAULTS = {
   jitter: 0,
   edgeSpray: 0,
   sizeVariance: 0.46,
-  pointerRadius: 0.15,
+  pointerRadius: 0.18,
   // 鼠标划过时把光标周围一圈粒子往外挤一点（环形推力 + 每点随机偏转），
   // 不是清空——光标正中心几乎不推，粒子只是变稀。冲散和吸附反向，吸附归 0。
   pointerAttract: 0,
@@ -203,15 +203,22 @@ export function AiCommunityCarousel() {
               （fixed right-4），不跟它重叠。 */}
           <div className="reveal flex flex-col items-end gap-9 md:pr-12">
             <CommunityRadar dims={feature.dimensions} />
-            <div key={active} className="fade-in flex w-full flex-col items-end text-right">
-              <p className={`${eMono} text-[10px] text-[#9ca3af]`}>
+            {/* key={active} 让整块在切换维度时重新挂载，三行文字各自带
+                rise-in（从下方 14px 浮现 + 淡入，缓出曲线），并按 0 / 90 /
+                180ms 错峰，形成"呼吸式"依次浮现，而不是整体闪一下。 */}
+            <div key={active} className="flex w-full flex-col items-end text-right">
+              <p className={`${eMono} rise-in text-[10px] text-[#9ca3af]`}>
                 {String(active + 1).padStart(2, "0")}/{String(features.length).padStart(2, "0")}
               </p>
-              <h3 className={`${eMono} mt-1 text-[22px] font-bold text-[#f3f4f6] md:text-[26px]`}>
+              <h3
+                className={`${eMono} rise-in mt-1 text-[22px] font-bold text-[#f3f4f6] md:text-[26px]`}
+                style={{ animationDelay: "90ms" }}
+              >
                 {feature.label}
               </h3>
               <p
-                className={`${eMono} mt-5 max-w-[320px] text-[11px] leading-[1.8] text-[#9ca3af]`}
+                className={`${eMono} rise-in mt-5 max-w-[320px] text-[11px] leading-[1.8] text-[#9ca3af]`}
+                style={{ animationDelay: "180ms" }}
               >
                 {feature.description}
               </p>
