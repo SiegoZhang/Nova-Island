@@ -23,12 +23,16 @@ export const eRailContainer = "mx-auto w-full max-w-[1280px]";
 export const ePageContainer = `${eRailContainer} px-6 md:px-9`;
 
 export const eBtnPrimary =
-  "inline-flex items-center justify-center rounded-full bg-[#1c1917] px-6 py-3 text-[14px] font-medium tracking-[-0.01em] text-white transition-colors duration-200 hover:bg-black active:scale-[0.97]";
+  "inline-flex items-center justify-center rounded-full bg-[#1A38CE] px-6 py-3 text-[14px] font-medium tracking-[-0.01em] text-white transition-colors duration-200 hover:bg-[#1A38CE]/90 active:scale-[0.97]";
 
 export const eBtnGhost =
   "inline-flex items-center justify-center rounded-full border border-[#efefef] bg-transparent px-6 py-3 text-[14px] font-medium tracking-[-0.01em] text-[#1c1917] transition-colors duration-200 hover:border-[#1c1917] active:scale-[0.97]";
 
 export const eEyebrow = `inline-flex items-center gap-2 text-[12px] font-medium tracking-[0.08em] text-[#78716c] uppercase ${jetbrainsMono.className}`;
+
+// 深色语境（首页整屏黑底）用的 eyebrow：字色提亮到中浅灰，其余排版与
+// eEyebrow 完全一致。
+export const eEyebrowDark = `inline-flex items-center gap-2 text-[12px] font-medium tracking-[0.08em] text-[#8b8b8b] uppercase ${jetbrainsMono.className}`;
 
 export const eMono = jetbrainsMono.className;
 

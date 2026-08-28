@@ -228,16 +228,18 @@ export const IMAGE_SAMPLED_DEFAULT_TUNING: ImageSampledTuning = {
 
 // ---- AI 社群卡片点阵动画（AiCommunityCarousel / AiCommunitySection）------
 //
-// 以下六组是 2026-08-26 对首页/AI 社群板块六张点阵卡片当前生效数值的备份
+// 以下六组是 2026-08-26 对首页/AI 社群板块六张点阵卡片当时生效数值的备份
 // 快照。FlagVisual / RingSphereDotMatrix / ToolDotMatrix / SalonDotMatrix /
 // SphereConnectDotMatrix / NavigatorDotMatrix 这六个组件各自在文件内部维护
 // 自己的一份 *_DEFAULTS 常量并从那份读取，不从这里 import——这里只是存档，
 // 方便日后调参面板试坏了数值、或误改代码时能对照手动恢复，不是这些组件的
 // 实际数据源，改这里不会影响线上效果。
 //
-// 注：六个组件的片元着色器已去掉第三个高光色（uColorGlow）的叠加，只按亮度
-// 在 colorLow / colorHigh 两色之间插值；下面各组的 colorGlow 字段仅为历史
-// 存档，实际渲染不再使用。
+// 注：2026-08-27 起六个组件统一改成「灰底纹理 + 少量高光」——片元着色器按
+// 亮度在 colorLow→colorGlow 两档灰之间插值形成纹理，仅最亮的一小段染成
+// colorHigh（白色）作为高光。当前生效值为
+// colorLow #d0d0d0 / colorGlow #e8e8e8 / colorHigh #ffffff（六组一致）；
+// 下面快照里的 colorLow/High/Glow 是改版前的旧值，仅供对照。
 
 export const AI_COMMUNITY_DOT_MATRIX_GRID = {
   cols: 74,
@@ -247,7 +249,7 @@ export const AI_COMMUNITY_DOT_MATRIX_GRID = {
 /** 每周风向（FlagVisual），对应组件内 FLAG_DEFAULTS。 */
 export const AI_COMMUNITY_FLAG_DEFAULTS_SNAPSHOT = {
   videoSrc: "/videos/daily.mp4",
-  density: 2,
+  density: 1.35,
   dotMaxSize: 5.9,
   dotMinSize: 0,
   opacityThreshold: 0.05,
@@ -267,7 +269,7 @@ export const AI_COMMUNITY_FLAG_DEFAULTS_SNAPSHOT = {
 /** 超级内容（RingSphereDotMatrix），对应组件内 RING_SPHERE_DEFAULTS。 */
 export const AI_COMMUNITY_RING_SPHERE_DEFAULTS_SNAPSHOT = {
   videoSrc: "/videos/ring-sphere.mp4",
-  density: 2,
+  density: 1.25,
   dotMaxSize: 5.9,
   dotMinSize: 0,
   opacityThreshold: 0.05,
@@ -290,14 +292,14 @@ export const AI_COMMUNITY_RING_SPHERE_DEFAULTS_SNAPSHOT = {
 /** 工具教程（ToolDotMatrix），对应组件内 TOOL_DEFAULTS。 */
 export const AI_COMMUNITY_TOOL_DEFAULTS_SNAPSHOT = {
   videoSrc: "/videos/tool.mp4",
-  density: 1.7,
+  density: 1.25,
   dotMaxSize: 7.9,
   dotMinSize: 0,
   opacityThreshold: 0,
   softness: 0.02,
   contrast: 0.5,
   keyColor: "#000000",
-  keyThreshold: 0.02,
+  keyThreshold: 0.52,
   keySoftness: 0.02,
   edgeFadeStart: 0.5,
   colorLow: "#d4b6fe",
@@ -314,7 +316,7 @@ export const AI_COMMUNITY_TOOL_DEFAULTS_SNAPSHOT = {
 /** 精选沙龙（SalonDotMatrix），对应组件内 SALON_DEFAULTS。 */
 export const AI_COMMUNITY_SALON_DEFAULTS_SNAPSHOT = {
   videoSrc: "/videos/salon.mp4",
-  density: 2,
+  density: 1.1,
   dotMaxSize: 6.6,
   dotMinSize: 0,
   opacityThreshold: 0.05,
@@ -337,8 +339,8 @@ export const AI_COMMUNITY_SALON_DEFAULTS_SNAPSHOT = {
 /** 同频集会（SphereConnectDotMatrix），对应组件内 SPHERE_CONNECT_DEFAULTS。 */
 export const AI_COMMUNITY_SPHERE_CONNECT_DEFAULTS_SNAPSHOT = {
   videoSrc: "/videos/spheres.mp4",
-  density: 2,
-  dotMaxSize: 6.2,
+  density: 1.5,
+  dotMaxSize: 4.8,
   dotMinSize: 0,
   opacityThreshold: 0.23,
   softness: 0.02,
@@ -357,8 +359,8 @@ export const AI_COMMUNITY_SPHERE_CONNECT_DEFAULTS_SNAPSHOT = {
 /** 成为领航员（NavigatorDotMatrix），对应组件内 NAVIGATOR_DEFAULTS。 */
 export const AI_COMMUNITY_NAVIGATOR_DEFAULTS_SNAPSHOT = {
   videoSrc: "/videos/navigator.mp4",
-  density: 2,
-  dotMaxSize: 5.9,
+  density: 1.8,
+  dotMaxSize: 4.6,
   dotMinSize: 0,
   opacityThreshold: 0.05,
   softness: 0.5,

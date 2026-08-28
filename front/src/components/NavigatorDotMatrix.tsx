@@ -102,8 +102,11 @@ const FRAGMENT_SHADER = /* glsl */ `
     float circle = 1.0 - smoothstep(0.32, 0.5, dist);
     if (circle <= 0.0) discard;
 
-    // 只按亮度在暗部色 / 亮部色两色之间插值，不再叠加第三个高光色。
-    vec3 color = mix(uColorLow, uColorHigh, clamp(vLuminance, 0.0, 1.0));
+    // 主色调：按亮度在两档灰（uColorLow→uColorGlow）之间插值，形成点阵纹理。
+    float lum = clamp(vLuminance, 0.0, 1.0);
+    vec3 color = mix(uColorLow, uColorGlow, lum);
+    // 少量高光：仅亮度最高的一小段染成高光色 uColorHigh。
+    color = mix(color, uColorHigh, smoothstep(0.72, 0.95, lum));
     float alpha = circle * vMask * uMaxAlpha;
     gl_FragColor = vec4(color, alpha);
   }
@@ -448,16 +451,16 @@ const DEFAULT_GRID_COLS = 74;
 const DEFAULT_GRID_ROWS = 60;
 
 const NAVIGATOR_DEFAULTS = {
-  density: 2,
-  dotMaxSize: 5.9,
+  density: 1.8,
+  dotMaxSize: 4.6,
   dotMinSize: 0,
   opacityThreshold: 0.05,
   softness: 0.5,
   contrast: 1.4,
   edgeFadeStart: 0.5,
-  colorLow: "#1a38ce",
-  colorHigh: "#d4b6ff",
-  colorGlow: "#e1ed63",
+  colorLow: "#d0d0d0",
+  colorHigh: "#ffffff",
+  colorGlow: "#e8e8e8",
   background: "#fdfcfc",
   maxAlpha: 1,
   speed: 1,

@@ -15,7 +15,7 @@ import { SalonDotMatrix } from "@/components/SalonDotMatrix";
 import { SphereConnectDotMatrix } from "@/components/SphereConnectDotMatrix";
 import { ToolDotMatrix } from "@/components/ToolDotMatrix";
 import { aiCommunityFeatures as features } from "@/lib/aiCommunityFeatures";
-import { eBtnPrimary, eEyebrow, eRailContainer, ePageContainer } from "@/lib/eleven";
+import { eBtnPrimary, eEyebrowDark, eRailContainer, ePageContainer } from "@/lib/eleven";
 
 // Figma（node 169:4096）里的板块是一排大卡片轮播：容器裁切出一张完整
 // 展开的当前卡（标题+文案+视觉+CTA），左右各露出一小截相邻卡片作为
@@ -108,14 +108,14 @@ export function AiCommunityCarousel() {
   }, []);
 
   return (
-    <section id="ai" className="bg-[#F8F9FA] py-24">
+    <section id="ai" className="w-full bg-black">
       <div className={ePageContainer}>
-        <div className="reveal mb-10 text-center">
-          <p className={eEyebrow}>AI社群</p>
-          <h2 className="mt-4 text-[32px] leading-[1.1] font-medium tracking-[-0.02em] text-[#1c1917] md:text-[40px]">
+        <div data-parallax className="reveal mb-10 text-center">
+          <p className={eEyebrowDark}>AI社群</p>
+          <h2 className="mt-4 text-[32px] leading-[1.1] font-medium tracking-[-0.02em] text-[#f5f5f5] md:text-[40px]">
             保持对行业前沿的持续感知
           </h2>
-          <p className="mx-auto mt-3 max-w-[540px] text-[16px] leading-[1.65] text-[#57534e]">
+          <p className="mx-auto mt-3 max-w-[540px] text-[16px] leading-[1.65] text-[#a1a1aa]">
             3000+ 行业先行者的选择，用最低成本保持对 AI 前沿的持续感知。
           </p>
         </div>
@@ -140,7 +140,7 @@ export function AiCommunityCarousel() {
                 cardRefs.current[index] = el;
               }}
               onClick={index === activeIndex ? undefined : () => goTo(index)}
-              className={`relative h-[420px] w-[82%] shrink-0 snap-center overflow-hidden rounded-2xl border border-[#efefef] bg-[#f3f6ed] sm:w-[68%] md:h-[560px] lg:w-[78%] ${
+              className={`relative h-[420px] w-[82%] shrink-0 snap-center overflow-hidden rounded-2xl border border-white/10 bg-[#101012] sm:w-[68%] md:h-[min(56vh,560px)] lg:w-[78%] ${
                 index === activeIndex ? "" : "cursor-pointer"
               }`}
             >
@@ -152,34 +152,36 @@ export function AiCommunityCarousel() {
               <div
                 aria-hidden="true"
                 className={`absolute inset-0 ${
-                  feature.visual.type === "image" ? "bg-[#050a18]" : "bg-[#f3f6ed]"
+                  feature.visual.type === "image"
+                    ? "bg-[#050a18]"
+                    : "bg-[#101012] [&_canvas]:opacity-[0.78]"
                 }`}
               >
                 {feature.visual.type === "particle" ? (
                   <ParticleField mode={feature.visual.mode} className="fade-in" />
                 ) : feature.visual.type === "flag" ? (
                   <LazyMount>
-                    <FlagVisual className="fade-in" background="#f3f6ed" />
+                    <FlagVisual className="fade-in" background="#101012" />
                   </LazyMount>
                 ) : feature.visual.type === "ring-sphere-dot-matrix" ? (
                   <LazyMount>
-                    <RingSphereDotMatrix className="fade-in" background="#f3f6ed" />
+                    <RingSphereDotMatrix className="fade-in" background="#101012" />
                   </LazyMount>
                 ) : feature.visual.type === "tool-dot-matrix" ? (
                   <LazyMount>
-                    <ToolDotMatrix className="fade-in" background="#f3f6ed" />
+                    <ToolDotMatrix className="fade-in" background="#101012" />
                   </LazyMount>
                 ) : feature.visual.type === "sphere-connect-dot-matrix" ? (
                   <LazyMount>
-                    <SphereConnectDotMatrix className="fade-in" background="#f3f6ed" />
+                    <SphereConnectDotMatrix className="fade-in" background="#101012" />
                   </LazyMount>
                 ) : feature.visual.type === "navigator-dot-matrix" ? (
                   <LazyMount>
-                    <NavigatorDotMatrix className="fade-in" background="#f3f6ed" />
+                    <NavigatorDotMatrix className="fade-in" background="#101012" />
                   </LazyMount>
                 ) : feature.visual.type === "salon-dot-matrix" ? (
                   <LazyMount>
-                    <SalonDotMatrix className="fade-in" background="#f3f6ed" />
+                    <SalonDotMatrix className="fade-in" background="#101012" />
                   </LazyMount>
                 ) : (
                   <Image
@@ -195,22 +197,14 @@ export function AiCommunityCarousel() {
                 className={`relative z-10 flex h-full max-w-[420px] flex-col justify-center gap-8 bg-gradient-to-r p-8 md:max-w-[480px] md:gap-10 md:p-14 ${
                   feature.visual.type === "image"
                     ? "from-[#050a18] via-[#050a18]/90 to-transparent"
-                    : "from-[#f3f6ed] via-[#f3f6ed]/90 to-transparent"
+                    : "from-[#101012] via-[#101012]/90 to-transparent"
                 }`}
               >
                 <div>
-                  <h3
-                    className={`text-[24px] leading-[1.3] font-semibold md:text-[32px] ${
-                      feature.visual.type === "image" ? "text-white" : "text-[#111]"
-                    }`}
-                  >
+                  <h3 className="text-[24px] leading-[1.3] font-semibold text-white md:text-[32px]">
                     {feature.label}
                   </h3>
-                  <p
-                    className={`mt-4 text-[15px] leading-[1.7] md:text-[16px] ${
-                      feature.visual.type === "image" ? "text-white/75" : "text-[#4f5150]"
-                    }`}
-                  >
+                  <p className="mt-4 text-[15px] leading-[1.7] text-white/70 md:text-[16px]">
                     {feature.description}
                   </p>
                 </div>
@@ -223,7 +217,7 @@ export function AiCommunityCarousel() {
                 currentIndex={activeIndex}
                 total={features.length}
                 onSelect={goTo}
-                tone={feature.visual.type === "image" ? "dark" : "light"}
+                tone="dark"
                 className="absolute right-8 bottom-8 z-20 md:right-14 md:bottom-14"
               />
             </div>

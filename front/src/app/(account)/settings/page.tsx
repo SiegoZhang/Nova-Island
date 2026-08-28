@@ -383,8 +383,8 @@ export default function SettingsPage() {
       <div className="section-container w-full py-8 md:py-10">
         <Skeleton className="h-9 w-40" />
         <div className="mt-8 flex flex-col gap-6">
-          <Skeleton className="h-64 w-full rounded-[20px]" />
-          <Skeleton className="h-64 w-full rounded-[20px]" />
+          <Skeleton className="h-64 w-full rounded-[24px]" />
+          <Skeleton className="h-64 w-full rounded-[24px]" />
         </div>
       </div>
     );

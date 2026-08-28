@@ -28,9 +28,9 @@ export function AdminGate({ children }: { children: ReactNode }) {
         <div className="flex-1 px-6 py-8">
           <Skeleton className="h-9 w-48" />
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Skeleton className="h-36 rounded-[20px]" />
-            <Skeleton className="h-36 rounded-[20px]" />
-            <Skeleton className="h-36 rounded-[20px]" />
+            <Skeleton className="h-36 rounded-[24px]" />
+            <Skeleton className="h-36 rounded-[24px]" />
+            <Skeleton className="h-36 rounded-[24px]" />
           </div>
         </div>
       </div>

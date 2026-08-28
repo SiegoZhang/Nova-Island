@@ -8,7 +8,7 @@ export function Card({ className, ...props }: DivProps) {
   return (
     <div
       className={cn(
-        "rounded-[20px] border border-border bg-card text-card-foreground shadow-[0_8px_28px_rgba(21,23,25,0.04)]",
+        "rounded-[24px] border border-border bg-card text-card-foreground shadow-[0_8px_28px_rgba(21,23,25,0.04)]",
         className,
       )}
       {...props}

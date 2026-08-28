@@ -202,7 +202,7 @@ export function UserAdminPanel({
       : "已设置正式密码";
 
   return (
-    <div className="min-w-0 rounded-[20px] border border-border bg-card p-5 shadow-[0_8px_28px_rgba(21,23,25,0.04)] sm:p-6">
+    <div className="min-w-0 rounded-[24px] border border-border bg-card p-5 shadow-[0_8px_28px_rgba(21,23,25,0.04)] sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-[12px] font-medium text-muted-foreground">

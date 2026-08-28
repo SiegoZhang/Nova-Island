@@ -137,7 +137,7 @@ function FollowListContent({ kind }: { kind: FollowKind }) {
           />
         ) : (
           <>
-            <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
+            <ul className="divide-y divide-border overflow-hidden rounded-[24px] border border-border bg-card">
               {users.map((user) => (
                 <li key={user.id}>
                   <Link
@@ -181,7 +181,7 @@ export function FollowListPage({ kind }: { kind: FollowKind }) {
         <div className="section-container w-full py-8 md:py-10">
           <Skeleton className="h-9 w-48" />
           <div className="mt-8">
-            <Skeleton className="h-64 w-full rounded-[20px]" />
+            <Skeleton className="h-64 w-full rounded-[24px]" />
           </div>
         </div>
       }

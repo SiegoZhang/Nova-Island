@@ -108,8 +108,11 @@ const FRAGMENT_SHADER = /* glsl */ `
     float circle = 1.0 - smoothstep(0.32, 0.5, dist);
     if (circle <= 0.0) discard;
 
-    // 只按亮度在暗部色 / 亮部色两色之间插值，不再叠加第三个高光色。
-    vec3 color = mix(uColorLow, uColorHigh, clamp(vLuminance, 0.0, 1.0));
+    // 主色调：按亮度在两档灰（uColorLow→uColorGlow）之间插值，形成点阵纹理。
+    float lum = clamp(vLuminance, 0.0, 1.0);
+    vec3 color = mix(uColorLow, uColorGlow, lum);
+    // 少量高光：仅亮度最高的一小段染成高光色 uColorHigh。
+    color = mix(color, uColorHigh, smoothstep(0.72, 0.95, lum));
     float alpha = circle * vMask * uMaxAlpha;
     gl_FragColor = vec4(color, alpha);
   }
@@ -480,7 +483,7 @@ const DEFAULT_GRID_COLS = 74;
 const DEFAULT_GRID_ROWS = 60;
 
 const TOOL_DEFAULTS = {
-  density: 1.7,
+  density: 1.25,
   dotMaxSize: 7.9,
   dotMinSize: 0,
   // 亮度阈值/柔化只用来在色键已经判定为"前景"的区域里做细节层次，不承担
@@ -490,15 +493,15 @@ const TOOL_DEFAULTS = {
   contrast: 0.5,
   // 工具视频是纯黑背景 + 蓝银色金属质感，色键目标改成黑色。
   keyColor: "#000000",
-  keyThreshold: 0.02,
+  keyThreshold: 0.52,
   keySoftness: 0.02,
   edgeFadeStart: 0.5,
   // 深藏青到冰蓝白，取自素材实测采样（暗部钢蓝 #2d3e69、亮部高光
   // 接近纯白），贴合齿轮组本身的蓝银金属色，而不是沿用旧芯片素材的
   // 薄荷绿。
-  colorLow: "#d4b6fe",
-  colorHigh: "#e1ed63",
-  colorGlow: "#d4b6ff",
+  colorLow: "#d0d0d0",
+  colorHigh: "#ffffff",
+  colorGlow: "#e8e8e8",
   background: "#fdfcfc",
   maxAlpha: 1,
   speed: 1,

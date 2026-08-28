@@ -213,7 +213,7 @@ function AdminUsersContent() {
             />
           ) : (
             <>
-              <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
+              <ul className="divide-y divide-border overflow-hidden rounded-[24px] border border-border bg-card">
                 {users.map((user) => {
                   const active = selected?.id === user.id;
                   return (
@@ -312,7 +312,7 @@ function AdminUsersContent() {
             </p>
           </div>
         ) : (
-          <div className="rounded-[20px] border border-dashed border-border bg-secondary/30 p-6 text-[13px] text-muted-foreground">
+          <div className="rounded-[24px] border border-dashed border-border bg-secondary/30 p-6 text-[13px] text-muted-foreground">
             从左侧选择一位用户，即可调整角色或停用账号；也可点「添加用户」代建。
           </div>
         )}
@@ -327,7 +327,7 @@ export default function AdminUsersPage() {
       fallback={
         <div className="space-y-4">
           <Skeleton className="h-10 w-full max-w-md" />
-          <Skeleton className="h-64 w-full rounded-[20px]" />
+          <Skeleton className="h-64 w-full rounded-[24px]" />
         </div>
       }
     >

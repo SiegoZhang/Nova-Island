@@ -6,7 +6,7 @@ export function Footer() {
   return (
     <footer
       id="contact"
-      className="border-t border-white/10 bg-[#26282B] py-[max(24px,calc(20px+env(safe-area-inset-bottom,0px)))]"
+      className="border-t border-white/10 bg-black py-[max(24px,calc(20px+env(safe-area-inset-bottom,0px)))]"
     >
       <div className={ePageContainer}>
         <div className="flex flex-col items-center justify-between gap-5 text-center text-[12px] leading-5 text-white/65 md:flex-row md:text-left">

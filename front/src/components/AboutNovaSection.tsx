@@ -5,21 +5,21 @@ import { ePageContainer } from "@/lib/eleven";
 
 export function AboutNovaSection() {
   return (
-    <section id="about" className="bg-[#F8F9FA] py-24">
+    <section id="about" className="w-full bg-black">
       <div className={ePageContainer}>
-        <div className="p-10 md:p-16">
-          <LineRevealText className="mx-auto max-w-[900px] text-center text-[24px] leading-[1.5] text-[#57534e]">
+        <div data-parallax className="p-10 md:p-16">
+          <LineRevealText className="mx-auto max-w-[900px] text-center text-[24px] leading-[1.5] text-[#d4d4d8]">
             新岛专注于人工智能领域的知识服务与工程落地，业务由{" "}
             <Link
               href="/ai"
-              className="mx-1 inline-flex h-9 items-center justify-center rounded-full bg-[#1c1917] px-2.5 align-middle text-[16px] font-semibold text-white transition-colors hover:bg-[#3a3532]"
+              className="mx-1 inline-flex h-9 items-center justify-center rounded-full bg-white px-2.5 align-middle text-[16px] font-semibold text-[#0b0b0c] transition-colors hover:bg-white/85"
             >
               AI社群
             </Link>{" "}
             与{" "}
             <Link
               href="/fde"
-              className="mx-1 inline-flex h-9 items-center justify-center rounded-full bg-[#1c1917] px-2.5 align-middle text-[16px] font-semibold text-white transition-colors hover:bg-[#3a3532]"
+              className="mx-1 inline-flex h-9 items-center justify-center rounded-full bg-white px-2.5 align-middle text-[16px] font-semibold text-[#0b0b0c] transition-colors hover:bg-white/85"
             >
               FDE
             </Link>{" "}

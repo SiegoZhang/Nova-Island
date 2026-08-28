@@ -16,8 +16,9 @@ import { ePageContainer } from "@/lib/eleven";
 // 是弥漫的烟雾（不是纯黑）。烟雾本身也有一定亮度，阈值/对比度都要比"黑底
 // 光环"类视频（比如之前用过的联系我们.mp4）拉得更高，才能只挖出火环本身、
 // 不把满屏的烟雾一起点阵化。colorLow/colorHigh 用两档蓝色按亮度区分：暗部
-// 5F85DB，亮部 90B8F8，背景改为 343942，让这个 CTA 区域整体进入深色
-// 语境。squareDotRatio 让部分点固定为方形，跟圆形点混杂在同一片点阵里。
+// 5F85DB，亮部 90B8F8，背景用纯黑 #000（首页整屏统一黑底），让这个 CTA
+// 区域跟其余板块的黑底完全对齐。squareDotRatio 让部分点固定为方形，跟
+// 圆形点混杂在同一片点阵里。
 //
 // 网格分辨率（gridCols/gridRows，也就是"点阵像素"）不再写死，改成
 // density 倍率 × 基准网格，配一个仅开发环境可见的调参面板实时调节，松手
@@ -28,7 +29,7 @@ const CONTACT_BASE_GRID_ROWS = 50;
 
 const CONTACT_DEFAULTS = {
   src: "/videos/contact-circle.mp4",
-  background: "#343942",
+  background: "#000000",
   colorLow: "#5F85DB",
   colorHigh: "#90B8F8",
   squareDotRatio: 0.5,
@@ -76,7 +77,7 @@ export function ContactCtaSection() {
   const gridRows = Math.max(4, Math.round(CONTACT_BASE_GRID_ROWS * density));
 
   return (
-    <section className="relative z-20 overflow-hidden bg-[#343942] py-24">
+    <section className="relative z-20 w-full overflow-hidden bg-black py-16">
       <div className={`${ePageContainer} flex min-h-[520px] items-center justify-center`}>
         {/* 光环视频点阵在这个方框里居中；文案+CTA 叠在同一个方框正中央，
             正好落在光环中心那片黑色镂空区域里，视觉上与光环合成一个整体，

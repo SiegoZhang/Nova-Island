@@ -36,8 +36,8 @@ interface SectionDividerProps {
  */
 export function SectionDivider({
   showJoints = true,
-  topBg = "#F8F9FA",
-  bottomBg = "#F8F9FA",
+  topBg = "#ffffff",
+  bottomBg = "#ffffff",
 }: SectionDividerProps) {
   return (
     <div aria-hidden="true" className="relative h-px w-full bg-[#efefef]">
