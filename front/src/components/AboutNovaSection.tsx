@@ -5,7 +5,7 @@ import { ePageContainer } from "@/lib/eleven";
 
 export function AboutNovaSection() {
   return (
-    <section id="about" className="w-full bg-black">
+    <section id="about" className="w-full">
       <div className={ePageContainer}>
         <div data-parallax className="p-10 md:p-16">
           <LineRevealText className="mx-auto max-w-[900px] text-center text-[24px] leading-[1.5] text-[#d4d4d8]">

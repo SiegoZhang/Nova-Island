@@ -307,7 +307,7 @@ export function TeamSection() {
   };
 
   return (
-    <section id="team" className="w-full bg-black">
+    <section id="team" className="w-full">
       <div className={`${ePageContainer} grid gap-14 md:grid-cols-[40fr_60fr] md:items-center md:gap-16`}>
         <div data-parallax className="reveal">
           <p className={eEyebrowDark}>我们的团队</p>

@@ -3,6 +3,7 @@ import { AiCommunityCarousel } from "@/components/AiCommunityCarousel";
 import { ContactCtaSection } from "@/components/ContactCtaSection";
 import { FdeSection } from "@/components/FdeSection";
 import { Footer } from "@/components/Footer";
+import { GridOverlay } from "@/components/GridOverlay";
 import { HeroSection } from "@/components/HeroSection";
 import { Navbar } from "@/components/Navbar";
 import { Slide, SlideDeck } from "@/components/SlideDeck";
@@ -23,19 +24,24 @@ export default function Home() {
             <HeroSection />
           </Slide>
           <Slide className="bg-black">
+            <GridOverlay />
             <AboutNovaSection />
           </Slide>
           <Slide className="bg-black">
+            <GridOverlay />
             <AiCommunityCarousel />
           </Slide>
           <Slide className="bg-black">
+            <GridOverlay />
             <FdeSection />
           </Slide>
           <Slide className="bg-black">
+            <GridOverlay />
             <TeamSection />
           </Slide>
           <Slide className="bg-black">
-            <div className="flex min-h-full w-full flex-col">
+            <GridOverlay />
+            <div className="relative z-10 flex min-h-full w-full flex-col">
               <div className="flex flex-1 items-center">
                 <ContactCtaSection />
               </div>

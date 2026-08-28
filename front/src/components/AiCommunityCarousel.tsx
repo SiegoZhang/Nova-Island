@@ -93,22 +93,11 @@ export function AiCommunityCarousel() {
   const feature = features[active];
 
   return (
-    <section id="ai" className="w-full bg-black">
+    <section id="ai" className="w-full">
       <div
         ref={rootRef}
         className="relative mx-auto flex min-h-[100svh] w-full max-w-[1440px] flex-col overflow-hidden md:h-[100svh]"
       >
-        {/* 100px 网格底纹 */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)",
-            backgroundSize: "100px 100px",
-          }}
-        />
-
         <div className="relative z-10 flex flex-1 flex-col gap-14 px-6 py-24 md:grid md:grid-cols-[minmax(240px,320px)_minmax(0,1fr)_minmax(280px,340px)] md:items-center md:gap-8 md:px-12 md:py-0">
           {/* ── 左列 telemetry ── */}
           <div className="reveal flex flex-col gap-7">

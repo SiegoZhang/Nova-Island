@@ -77,7 +77,7 @@ export function ContactCtaSection() {
   const gridRows = Math.max(4, Math.round(CONTACT_BASE_GRID_ROWS * density));
 
   return (
-    <section className="relative z-20 w-full overflow-hidden bg-black py-16">
+    <section className="relative z-20 w-full overflow-hidden py-16">
       <div className={`${ePageContainer} flex min-h-[520px] items-center justify-center`}>
         {/* 光环视频点阵在这个方框里居中；文案+CTA 叠在同一个方框正中央，
             正好落在光环中心那片黑色镂空区域里，视觉上与光环合成一个整体，

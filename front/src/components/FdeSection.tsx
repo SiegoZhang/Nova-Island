@@ -129,7 +129,7 @@ export function FdeSection() {
   }, []);
 
   return (
-    <section id="fde" className="w-full bg-black">
+    <section id="fde" className="w-full">
       <div className={ePageContainer}>
         <div data-parallax className="reveal mb-10 text-center">
           <p className={eEyebrowDark}>FDE业务</p>
