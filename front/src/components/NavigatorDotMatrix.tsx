@@ -42,6 +42,9 @@ const VERTEX_SHADER = /* glsl */ `
   uniform float uPointerActivity;
   uniform float uPointerAttract;
   uniform float uPointerSizeBoost;
+  // 鼠标"冲散"：半径内的点沿背离光标的方向被推开（越靠近推得越狠），
+  // 配一点每点随机的偏转，看起来像划过时把粒子拨开、身后再涌回。
+  uniform float uPointerScatter;
   // ── 粒子散布（0 = 关闭，回到规整网格点阵）────────────────────
   uniform float uJitter;       // 均匀位置抖动，打散"网格感"（本地坐标单位，全幅=1）
   uniform float uEdgeSpray;    // 人像轮廓处的点额外沿径向往外喷，形成飘散的边缘
@@ -105,6 +108,13 @@ const VERTEX_SHADER = /* glsl */ `
 
     vec3 warpedPosition = vec3(jittered, 0.0);
     warpedPosition.xy += toPointer * pointerGlow * uPointerAttract;
+
+    // 冲散：沿背离光标方向推开（单位向量 → 越近推得越狠靠 pointerFalloff），
+    // 再叠一点每点固定的随机偏转，避免推成一个规整的圆洞。
+    vec2 awayDir = -toPointer / (pointerDist + 1e-4);
+    vec2 scatterNoise = (hash22(aUv * 217.3) - 0.5) * 1.1;
+    float scatterAmt = pointerFalloff * uPointerActivity * step(0.003, mask) * uPointerScatter;
+    warpedPosition.xy += (awayDir + scatterNoise) * scatterAmt;
 
     vec4 mvPosition = modelViewMatrix * vec4(warpedPosition, 1.0);
     gl_Position = projectionMatrix * mvPosition;
@@ -175,6 +185,7 @@ interface NavigatorDotCoreProps {
   pointerRadius: number;
   pointerAttract: number;
   pointerSizeBoost: number;
+  pointerScatter: number;
 }
 
 function NavigatorDotCore({
@@ -202,6 +213,7 @@ function NavigatorDotCore({
   pointerRadius,
   pointerAttract,
   pointerSizeBoost,
+  pointerScatter,
 }: NavigatorDotCoreProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const materialRef = useRef<THREE.ShaderMaterial | null>(null);
@@ -277,6 +289,7 @@ function NavigatorDotCore({
         uPointerActivity: { value: 0 },
         uPointerAttract: { value: pointerAttract },
         uPointerSizeBoost: { value: pointerSizeBoost },
+        uPointerScatter: { value: pointerScatter },
       },
       vertexShader: VERTEX_SHADER,
       fragmentShader: FRAGMENT_SHADER,
@@ -479,6 +492,7 @@ function NavigatorDotCore({
     material.uniforms.uPointerRadius.value = pointerRadius;
     material.uniforms.uPointerAttract.value = pointerAttract;
     material.uniforms.uPointerSizeBoost.value = pointerSizeBoost;
+    material.uniforms.uPointerScatter.value = pointerScatter;
   }, [
     dotMinSize,
     dotMaxSize,
@@ -496,6 +510,7 @@ function NavigatorDotCore({
     pointerRadius,
     pointerAttract,
     pointerSizeBoost,
+    pointerScatter,
     ]);
 
   return (
@@ -547,6 +562,9 @@ const NAVIGATOR_DEFAULTS = {
   pointerRadius: 0.16,
   /** 鼠标"吸附"力度——半径内的点朝鼠标位置额外偏移的比例。 */
   pointerAttract: 0.35,
+  /** 鼠标"冲散"力度——半径内的点沿背离光标方向被推开的幅度（本地坐标
+   *  单位）。默认 0：只吸附不冲散。首页实例传非 0 做划过拨散粒子的效果。 */
+  pointerScatter: 0,
   /** 鼠标悬浮处的点在原本亮度决定的大小基础上再叠加的放大倍数。 */
   pointerSizeBoost: 1.2,
 } as const;
@@ -586,6 +604,8 @@ export interface NavigatorDotMatrixProps {
   sizeVariance?: number;
   /** 鼠标"收拢"力度——半径内的点朝光标偏移的比例，默认 0.35。 */
   pointerAttract?: number;
+  /** 鼠标"冲散"力度——半径内的点沿背离光标方向被推开，默认 0（不冲散）。 */
+  pointerScatter?: number;
   /** 鼠标悬浮处点的额外放大倍数，默认 1.2。传小值/0 只收拢不放大。 */
   pointerSizeBoost?: number;
 }
@@ -607,6 +627,7 @@ export function NavigatorDotMatrix({
   sizeVariance: sizeVarianceProp,
   pointerAttract: pointerAttractProp,
   pointerSizeBoost: pointerSizeBoostProp,
+  pointerScatter: pointerScatterProp,
 }: NavigatorDotMatrixProps) {
   const [density, setDensity] = useState<number>(densityProp ?? NAVIGATOR_DEFAULTS.density);
   const [dotMaxSize, setDotMaxSize] = useState<number>(
@@ -640,6 +661,9 @@ export function NavigatorDotMatrix({
   );
   const [pointerSizeBoost, setPointerSizeBoost] = useState<number>(
     pointerSizeBoostProp ?? NAVIGATOR_DEFAULTS.pointerSizeBoost,
+  );
+  const [pointerScatter, setPointerScatter] = useState<number>(
+    pointerScatterProp ?? NAVIGATOR_DEFAULTS.pointerScatter,
   );
   const [jitter, setJitter] = useState<number>(jitterProp ?? NAVIGATOR_DEFAULTS.jitter);
   const [edgeSpray, setEdgeSpray] = useState<number>(
@@ -677,6 +701,7 @@ export function NavigatorDotMatrix({
       pointerRadius,
     pointerAttract,
     pointerSizeBoost,
+    pointerScatter,
   };
 
   return (
@@ -723,6 +748,8 @@ export function NavigatorDotMatrix({
           onPointerAttractChange={setPointerAttract}
           pointerSizeBoost={pointerSizeBoost}
           onPointerSizeBoostChange={setPointerSizeBoost}
+          pointerScatter={pointerScatter}
+          onPointerScatterChange={setPointerScatter}
           hoverColor={hoverColor}
           onHoverColorChange={setHoverColor}
           jitter={jitter}
@@ -768,6 +795,8 @@ function NavigatorTuningPanel({
   onPointerAttractChange,
   pointerSizeBoost,
   onPointerSizeBoostChange,
+  pointerScatter,
+  onPointerScatterChange,
   hoverColor,
   onHoverColorChange,
   jitter,
@@ -807,6 +836,8 @@ function NavigatorTuningPanel({
   onPointerAttractChange: (value: number) => void;
   pointerSizeBoost: number;
   onPointerSizeBoostChange: (value: number) => void;
+  pointerScatter: number;
+  onPointerScatterChange: (value: number) => void;
   hoverColor: string;
   onHoverColorChange: (value: string) => void;
   jitter: number;
@@ -962,6 +993,16 @@ function NavigatorTuningPanel({
           unit=""
           onChange={onPointerAttractChange}
           onCommit={(v) => persistDotTuningValue(componentId,"pointerAttract", v)}
+        />
+        <TuningSlider
+          label="冲散"
+          value={pointerScatter}
+          min={0}
+          max={0.2}
+          step={0.005}
+          unit=""
+          onChange={onPointerScatterChange}
+          onCommit={(v) => persistDotTuningValue(componentId,"pointerScatter", v)}
         />
         <TuningSlider
           label="放大"

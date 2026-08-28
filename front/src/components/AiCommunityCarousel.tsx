@@ -42,7 +42,10 @@ const AI_COMMUNITY_NAVIGATOR_DEFAULTS = {
   edgeSpray: 0,
   sizeVariance: 0.46,
   pointerRadius: 0.16,
-  pointerAttract: 0.22,
+  // 鼠标划过时把粒子「冲散」拨开（背离光标推 + 每点随机偏转），身后再涌
+  // 回。冲散和吸附是反向的，所以吸附力归 0。
+  pointerAttract: 0,
+  pointerScatter: 0.07,
   pointerSizeBoost: 0,
 } as const;
 
@@ -163,8 +166,8 @@ export function AiCommunityCarousel() {
             {/* 点阵人像（常驻，不随滚动切换）。放大铺满整个 target 区、
                 居中，内部再放大到 120%。density/dotMaxSize/jitter/edgeSpray/
                 sizeVariance 把规整网格点阵打散成飘散的粒子云——人像轮廓处
-                的点沿径向喷出、每点大小随机，边缘碎成不连续颗粒。悬浮时
-                光标附近的粒子只做轻微收拢（pointerAttract），不染色、不放大。 */}
+                的点沿径向喷出、每点大小随机，边缘碎成不连续颗粒。鼠标划过
+                时光标附近的粒子被冲散拨开（pointerScatter），不染色、不放大。 */}
             <div className="absolute inset-[-2%] overflow-hidden">
               <LazyMount>
                 <NavigatorDotMatrix
