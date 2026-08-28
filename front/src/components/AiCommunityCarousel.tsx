@@ -41,11 +41,11 @@ const AI_COMMUNITY_NAVIGATOR_DEFAULTS = {
   jitter: 0,
   edgeSpray: 0,
   sizeVariance: 0.46,
-  pointerRadius: 0.25,
+  pointerRadius: 0.28,
   // 鼠标划过时把光标周围一圈粒子往外挤一点（环形推力 + 每点随机偏转），
   // 不是清空——光标正中心几乎不推，粒子只是变稀。冲散和吸附反向，吸附归 0。
-  pointerAttract: 0.03,
-  pointerScatter: 0.015,
+  pointerAttract: 0,
+  pointerScatter: 0.04,
   pointerSizeBoost: 0,
 } as const;
 
@@ -262,7 +262,7 @@ function CommunityRadar({ dims }: { dims: AiCommunityDimensions }) {
   }%, ${50 - RADAR_MAX * frontier}% 50%)`;
 
   const dot =
-    "absolute size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_7px_rgba(255,255,255,0.55)] transition-[top,left] duration-500 ease-out";
+    "absolute size-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80 shadow-[0_0_3px_rgba(255,255,255,0.35)] transition-[top,left] duration-500 ease-out";
 
   return (
     <div className="relative size-[144px] shrink-0" aria-hidden="true">
