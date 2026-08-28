@@ -169,9 +169,9 @@ export function AiCommunityCarousel() {
                 sizeVariance 把规整网格点阵打散成飘散的粒子云——人像轮廓处
                 的点沿径向喷出、每点大小随机，边缘碎成不连续颗粒。鼠标划过
                 时光标附近的粒子被冲散拨开（pointerScatter），不染色、不放大。 */}
-            {/* 渲染区上/左/右撑出去，底边只到方盒下沿——再往下是 LAMBDA 轴的
-                地盘，不让粒子盖住那排数字和刻度。 */}
-            <div className="absolute -top-[10%] -left-[10%] -right-[10%] bottom-0 overflow-hidden">
+            {/* 渲染区左右撑出去，纵向收窄：顶边 -6%、底边收到方盒内 16%，
+                让人形在窗口里的高度矮一截、整体上提，也给下方 LAMBDA 轴留白。 */}
+            <div className="absolute -left-[10%] -right-[10%] -top-[6%] bottom-[16%] overflow-hidden">
               <LazyMount>
                 <NavigatorDotMatrix
                   className="fade-in"
