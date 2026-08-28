@@ -75,25 +75,23 @@ const VERTEX_SHADER = /* glsl */ `
 
     float mask = smoothstep(uThreshold, uThreshold + uSoftness, luminance);
 
-    // 轮廓系数：亮度处于"半亮"区间时最大（≈ 人像外缘的线框），实心内部
-    // 与纯黑背景都接近 0 —— 用它决定哪些点要被喷散成飘散粒子。
-    float edgeFactor =
-      smoothstep(uThreshold, uThreshold + 0.18, luminance) *
-      (1.0 - smoothstep(0.4, 0.8, luminance));
-
-    // 位置抖动 + 边缘径向喷散
+    // 位移完全静态：只跟 aUv（+ 点到中心的距离）有关，逐帧不变——之前把
+    // 抖动/喷散幅度乘上了逐帧亮度算出来的 edgeFactor，视频一动，同一个点
+    // 的偏移量就来回变，看起来就是"粒子上下乱跳"。现在：
+    //   · uJitter：固定的小抖动，纯粹打散网格感
+    //   · uEdgeSpray：越靠外缘的点整体往外挪越多（按到中心的距离，不是
+    //     按亮度），做出松散的外圈，但每个点挪多少是定死的
     vec2 basePos = position.xy;
-    vec2 rnd = hash22(aUv * 141.7) - 0.5;
-    vec2 jittered = basePos + rnd * uJitter * (1.0 + edgeFactor * 3.0);
-    vec2 radial = basePos / (length(basePos) + 1e-4);
-    jittered += radial * edgeFactor * uEdgeSpray * hash12(aUv * 71.3);
+    float radiusFromCenter = length(basePos);
+    vec2 jittered = basePos + (hash22(aUv * 141.7) - 0.5) * uJitter;
+    vec2 radial = basePos / (radiusFromCenter + 1e-4);
+    float rimWeight = smoothstep(0.12, 0.46, radiusFromCenter);
+    jittered += radial * uEdgeSpray * rimWeight * hash12(aUv * 71.3);
 
     vec2 edgeDist = abs(jittered);
     float fadeX = 1.0 - smoothstep(uFadeStart, 0.5, edgeDist.x);
     float fadeY = 1.0 - smoothstep(uFadeStart, 0.5, edgeDist.y);
     mask *= fadeX * fadeY;
-    // 边缘点再随机丢一部分，让轮廓"碎"成不连续的颗粒
-    mask *= mix(1.0, hash12(aUv * 29.1), edgeFactor * clamp(uEdgeSpray * 12.0, 0.0, 0.85));
 
     vLuminance = luminance;
     vMask = mask;

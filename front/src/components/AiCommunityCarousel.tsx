@@ -150,11 +150,11 @@ export function AiCommunityCarousel() {
                   background="#000000"
                   sizePercent={120}
                   rightShiftPercent={0}
-                  density={2.4}
-                  dotMaxSize={2.8}
-                  jitter={0.006}
-                  edgeSpray={0.05}
-                  sizeVariance={0.6}
+                  density={2}
+                  dotMaxSize={3.2}
+                  jitter={0.005}
+                  edgeSpray={0.035}
+                  sizeVariance={0.5}
                   pointerAttract={0.22}
                   pointerSizeBoost={0}
                 />
