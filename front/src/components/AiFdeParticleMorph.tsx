@@ -20,7 +20,7 @@ import type { DeckTransitionState, MorphAnchorKey } from "@/components/SlideDeck
 
 const PARTICLE_COUNT = 14000;
 // 一次完整形变（人形 ↔ 地球）的时长，秒。跟滚动快慢无关。
-const MORPH_DURATION_S = 1.8;
+const MORPH_DURATION_S = 1.1;
 // 人形定格采样网格（navigator.mp4 是 16:9），亮度过阈的格子才算「人身上的点」。
 const SAMPLE_COLS = 168;
 const SAMPLE_ROWS = 94;
@@ -252,14 +252,19 @@ export function AiFdeParticleMorph({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // SlideDeck 的 useRef 对象，整个生命周期不变——捕进局部变量，cleanup 里安全用。
+    const sharedState = transitionRef.current;
+    const anchors = morphAnchorsRef.current;
+
     let renderer: THREE.WebGLRenderer | null = null;
     let scene: THREE.Scene | null = null;
     let camera: THREE.Camera | null = null;
     let material: THREE.ShaderMaterial | null = null;
     let geometry: THREE.BufferGeometry | null = null;
     let disposed = false;
+    let renderFailed = false;
     let raf = 0;
-    let displayT = 0;
+    let displayT = 0; // 头几帧会在 tick 里对齐当前所在屏（见 frame <= 4）
     let wasVisible = false;
 
     const targetB = fibonacciSphere();
@@ -340,29 +345,38 @@ export function AiFdeParticleMorph({
     const root = document.documentElement;
     let lastNow = performance.now();
     let lastWritten = -1;
+    let frame = 0;
 
     function tick(now: number) {
       raf = requestAnimationFrame(tick);
+      frame += 1;
 
-      const st = transitionRef.current;
+      const st = sharedState;
       // target 只提供方向：0 = 回 AI，1 = 去 FDE。displayT 按固定时长匀速
       // 逼近它，与滚动快慢无关。
       const target = st.t < 0.5 ? 0 : 1;
       const dt = Math.min(0.05, (now - lastNow) / 1000);
       lastNow = now;
-      const dir = Math.sign(target - displayT);
-      if (dir !== 0) {
+      if (frame <= 4) {
+        // 头几帧只对齐当前所在屏（刷新 / 深链 / 之前就滚过来了），不做入场形变
+        displayT = target;
+      } else if (displayT !== target) {
+        const dir = Math.sign(target - displayT);
         displayT += dir * (dt / MORPH_DURATION_S);
         if ((dir > 0 && displayT >= target) || (dir < 0 && displayT <= target)) {
           displayT = target;
         }
       }
 
-      // displayT 同时驱动两屏内容的淡入淡出（跟着慢时间线，不是滚动位置）。
-      const rounded = Math.round(displayT * 1000) / 1000;
-      if (rounded !== lastWritten) {
-        root.style.setProperty("--ai-fde-t", rounded.toFixed(3));
-        lastWritten = rounded;
+      // 渲染没失败 → --ai-fde-t 归粒子层写（跟着慢时间线，含静止端点值 0/1，
+      // 和 SlideDeck 按滚动位置会写的一致）；同时告诉 SlideDeck 过渡中别插手。
+      st.particleEngaged = !renderFailed && displayT > 0.0005 && displayT < 0.9995;
+      if (!renderFailed) {
+        const rounded = Math.round(displayT * 1000) / 1000;
+        if (rounded !== lastWritten) {
+          root.style.setProperty("--ai-fde-t", rounded.toFixed(3));
+          lastWritten = rounded;
+        }
       }
 
       const visible = displayT > 0.004 && displayT < 0.996;
@@ -373,13 +387,19 @@ export function AiFdeParticleMorph({
       }
       wasVisible = true;
 
-      if (!renderer) build();
-      if (!renderer || !scene || !camera || !material) return;
+      if (!renderer && !renderFailed) {
+        try {
+          build();
+        } catch {
+          renderFailed = true;
+        }
+      }
+      if (renderFailed || !renderer || !scene || !camera || !material) return;
 
       const vw = window.innerWidth;
       const vh = window.innerHeight;
       material.uniforms.uRectA.value = anchorRect(
-        morphAnchorsRef.current.ai,
+        anchors.ai,
         vw,
         vh,
         ANCHOR_RADIUS_FRAC_A,
@@ -387,7 +407,7 @@ export function AiFdeParticleMorph({
         fallbackRect,
       );
       material.uniforms.uRectB.value = anchorRect(
-        morphAnchorsRef.current.fde,
+        anchors.fde,
         vw,
         vh,
         ANCHOR_RADIUS_FRAC_B,
@@ -403,6 +423,7 @@ export function AiFdeParticleMorph({
 
     return () => {
       disposed = true;
+      sharedState.particleEngaged = false;
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", onResize);
       root.style.removeProperty("--ai-fde-t");

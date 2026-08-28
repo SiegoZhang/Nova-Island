@@ -93,7 +93,7 @@ export function FdeSection() {
     <section id="fde" className="w-full">
       <div
         ref={rootRef}
-        style={{ opacity: "clamp(0, calc((var(--ai-fde-t, 0) - 0.6) / 0.3), 1)" }}
+        style={{ opacity: "clamp(0, calc((var(--ai-fde-t, 1) - 0.55) / 0.35), 1)" }}
         className="relative mx-auto flex min-h-[100svh] w-full max-w-[1440px] flex-col overflow-hidden md:h-[100svh]"
       >
         <div className="relative z-10 flex flex-1 flex-col gap-14 px-6 py-24 md:grid md:grid-cols-[minmax(240px,320px)_minmax(0,1fr)_minmax(280px,340px)] md:items-center md:gap-8 md:px-12 md:py-0">

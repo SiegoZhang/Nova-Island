@@ -32,13 +32,16 @@ import { prefersReducedMotion } from "@/lib/dotSystem/runtime";
 export type MorphAnchorKey = "ai" | "fde";
 
 export interface DeckTransitionState {
-  /** 过渡进度 0..1（AI→FDE）。 */
+  /** 滚动位置算出的进度 0..1（AI→FDE），只用来给粒子层定方向。 */
   t: number;
   /** AI 屏相对其吸附位已滚过的像素（≥0）：把 AI 锚点屏幕 Y 加上它 →
    *  AI 吸附时的「定格」屏幕位置。 */
   aShiftPx: number;
   /** FDE 屏相对其吸附位的像素偏移（≤0，FDE 还在下方）：同理加到 FDE 锚点 Y。 */
   bShiftPx: number;
+  /** 粒子层正在跑自己的慢时间线：此时 --ai-fde-t 由粒子层写；否则由
+   *  SlideDeck 按滚动位置写（保证静止停在某屏时该屏内容一定可见）。 */
+  particleEngaged: boolean;
 }
 
 interface DeckContextValue {
@@ -86,7 +89,12 @@ export function SlideDeck({
   const [count, setCount] = useState(0);
   const [progress, setProgress] = useState(0);
 
-  const transitionRef = useRef<DeckTransitionState>({ t: 0, aShiftPx: 0, bShiftPx: 0 });
+  const transitionRef = useRef<DeckTransitionState>({
+    t: 0,
+    aShiftPx: 0,
+    bShiftPx: 0,
+    particleEngaged: false,
+  });
   const morphAnchorsRef = useRef<Record<MorphAnchorKey, HTMLElement | null>>({
     ai: null,
     fde: null,
@@ -108,12 +116,6 @@ export function SlideDeck({
       window.matchMedia("(min-width: 768px) and (pointer: fine)").matches,
     () => false,
   );
-  // 粒子层开着时，--ai-fde-t 由粒子层按自己的慢节奏写（不跟滚动速度）；
-  // 关着时才由这里按滚动位置写，好让无粒子层的降级路径仍有交叉淡入淡出。
-  const morphEnabledRef = useRef(false);
-  useEffect(() => {
-    morphEnabledRef.current = morphEnabled;
-  }, [morphEnabled]);
 
   const register = useCallback((el: HTMLElement) => {
     const list = slidesRef.current;
@@ -184,9 +186,9 @@ export function SlideDeck({
         transitionRef.current.t = t;
         transitionRef.current.aShiftPx = aShiftPx;
         transitionRef.current.bShiftPx = bShiftPx;
-        // 粒子层没挂载时（移动端 / reduced-motion）才在这里按滚动位置写，
-        // 挂载了就交给粒子层按自己的时间线写。
-        if (!morphEnabledRef.current) {
+        // 粒子层正在跑它的慢时间线时，--ai-fde-t 归它写；否则（静止停在
+        // 某屏、或根本没挂粒子层）由这里按滚动位置写，保证该屏内容可见。
+        if (!transitionRef.current.particleEngaged) {
           document.documentElement.style.setProperty("--ai-fde-t", t.toFixed(4));
         }
       }

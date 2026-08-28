@@ -34,9 +34,9 @@ const WHEEL_GESTURE_IDLE_MS = 200;
 // 松手后，会由 /api/dev/dot-tuning 直接写回这个常量块——不需要手动抄数值。
 // 这些是首页实例专用，跟 /ai 手风琴用的 NAVIGATOR_DEFAULTS 互不影响。
 const AI_COMMUNITY_NAVIGATOR_DEFAULTS = {
-  sizePercent: 104,
-  rightShiftPercent: 0,
-  downShiftPercent: 0,
+  sizePercent: 81,
+  rightShiftPercent: 4,
+  downShiftPercent: -2,
   density: 2,
   dotMaxSize: 2.7,
   jitter: 0,
@@ -105,7 +105,7 @@ export function AiCommunityCarousel() {
     <section id="ai" className="w-full">
       <div
         ref={rootRef}
-        style={{ opacity: "clamp(0, calc((0.18 - var(--ai-fde-t, 0)) / 0.18), 1)" }}
+        style={{ opacity: "clamp(0, calc((0.16 - var(--ai-fde-t, 0)) / 0.16), 1)" }}
         className="relative mx-auto flex min-h-[100svh] w-full max-w-[1440px] flex-col overflow-hidden md:h-[100svh]"
       >
         <div className="relative z-10 flex flex-1 flex-col gap-14 px-6 py-24 md:grid md:grid-cols-[minmax(240px,320px)_minmax(0,1fr)_minmax(280px,340px)] md:items-center md:gap-8 md:px-12 md:py-0">
