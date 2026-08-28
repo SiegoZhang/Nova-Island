@@ -185,14 +185,14 @@ export function AiCommunityCarousel() {
 
             {/* LAMBDA 轴 —— z-10 压在粒子渲染区之上，确保不被遮 */}
             <div
-              className={`${eMono} absolute -bottom-9 left-0 z-10 flex w-full items-center justify-between px-[13%] text-[10px] text-[#9ca3af]`}
+              className={`${eMono} absolute -bottom-4 left-0 z-10 flex w-full items-center justify-between px-[13%] text-[10px] text-[#9ca3af]`}
             >
               <span>0.1</span>
               <span>1.0</span>
               <span>10.0</span>
             </div>
             <p
-              className={`${eMono} absolute -bottom-[54px] left-1/2 z-10 -translate-x-1/2 text-[8px] tracking-[0.15em] text-[#4b5563]`}
+              className={`${eMono} absolute -bottom-[34px] left-1/2 z-10 -translate-x-1/2 text-[8px] tracking-[0.15em] text-[#4b5563]`}
             >
               LAMBDA (um)
             </p>
