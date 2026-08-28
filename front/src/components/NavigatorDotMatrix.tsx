@@ -554,12 +554,26 @@ const NAVIGATOR_DEFAULTS = {
 export interface NavigatorDotMatrixProps {
   className?: string;
   background?: string;
+  /**
+   * 开发环境调参面板的写回目标（persistDotTuningValue 的 componentId）。
+   * 默认 "navigator" → 写回本文件 NAVIGATOR_DEFAULTS（/ai 手风琴用）。
+   * 首页 AI 社群实例传 "aiCommunityNavigator" → 写回 AiCommunityCarousel.tsx
+   * 的 AI_COMMUNITY_NAVIGATOR_DEFAULTS，两处调参互不干扰。
+   */
+  tuningId?: string;
+  /** 精简调参面板：只留「构图 / 鼠标悬浮 / 粒子散布」，隐藏颜色/抠像档位
+   *  （首页实例这些字段用 NAVIGATOR_DEFAULTS，面板里调了也存不回去）。 */
+  compactTuning?: boolean;
   /** 鼠标邻近染色目标色，默认取 NAVIGATOR_DEFAULTS.hoverColor（琥珀）。 */
   hoverColor?: string;
   /** 整体缩放（%），默认 100。首页「频谱仪表盘」传更大的值把人像放大。 */
   sizePercent?: number;
   /** 整体右移（%），默认 16。首页需要居中时传 0。 */
   rightShiftPercent?: number;
+  /** 整体下移（%），默认 0。 */
+  downShiftPercent?: number;
+  /** 鼠标影响半径（顶点局部坐标单位 -0.5~0.5），默认 0.16。 */
+  pointerRadius?: number;
   /** 网格密度倍率，默认 NAVIGATOR_DEFAULTS.density。首页调高做更密的粒子。 */
   density?: number;
   /** 点径（px），默认 NAVIGATOR_DEFAULTS.dotMaxSize。粒子多时调小。 */
@@ -579,9 +593,13 @@ export interface NavigatorDotMatrixProps {
 export function NavigatorDotMatrix({
   className,
   background = NAVIGATOR_DEFAULTS.background,
+  tuningId = "navigator",
+  compactTuning = false,
   hoverColor: hoverColorProp,
   sizePercent: sizePercentProp,
   rightShiftPercent: rightShiftPercentProp,
+  downShiftPercent: downShiftPercentProp,
+  pointerRadius: pointerRadiusProp,
   density: densityProp,
   dotMaxSize: dotMaxSizeProp,
   jitter: jitterProp,
@@ -609,12 +627,14 @@ export function NavigatorDotMatrix({
     rightShiftPercentProp ?? NAVIGATOR_DEFAULTS.rightShiftPercent,
   );
   const [downShiftPercent, setDownShiftPercent] = useState<number>(
-    NAVIGATOR_DEFAULTS.downShiftPercent,
+    downShiftPercentProp ?? NAVIGATOR_DEFAULTS.downShiftPercent,
   );
   const [sizePercent, setSizePercent] = useState<number>(
     sizePercentProp ?? NAVIGATOR_DEFAULTS.sizePercent,
   );
-  const [pointerRadius, setPointerRadius] = useState<number>(NAVIGATOR_DEFAULTS.pointerRadius);
+  const [pointerRadius, setPointerRadius] = useState<number>(
+    pointerRadiusProp ?? NAVIGATOR_DEFAULTS.pointerRadius,
+  );
   const [pointerAttract, setPointerAttract] = useState<number>(
     pointerAttractProp ?? NAVIGATOR_DEFAULTS.pointerAttract,
   );
@@ -673,6 +693,8 @@ export function NavigatorDotMatrix({
 
       {process.env.NODE_ENV !== "production" && (
         <NavigatorTuningPanel
+          componentId={tuningId}
+          compact={compactTuning}
           density={density}
           onDensityChange={setDensity}
           dotMaxSize={dotMaxSize}
@@ -716,6 +738,8 @@ export function NavigatorDotMatrix({
 }
 
 function NavigatorTuningPanel({
+  componentId,
+  compact,
   density,
   onDensityChange,
   dotMaxSize,
@@ -753,6 +777,8 @@ function NavigatorTuningPanel({
   sizeVariance,
   onSizeVarianceChange,
 }: {
+  componentId: string;
+  compact: boolean;
   density: number;
   onDensityChange: (value: number) => void;
   dotMaxSize: number;
@@ -802,7 +828,7 @@ function NavigatorTuningPanel({
           unit="×"
           onCommit={(v) => {
             onDensityChange(v);
-            persistDotTuningValue("navigator", "density", v);
+            persistDotTuningValue(componentId,"density", v);
           }}
         />
         <TuningSlider
@@ -813,7 +839,7 @@ function NavigatorTuningPanel({
           step={0.1}
           unit="px"
           onChange={onDotMaxSizeChange}
-          onCommit={(v) => persistDotTuningValue("navigator", "dotMaxSize", v)}
+          onCommit={(v) => persistDotTuningValue(componentId,"dotMaxSize", v)}
         />
         <TuningSlider
           label="右移"
@@ -823,7 +849,7 @@ function NavigatorTuningPanel({
           step={1}
           unit="%"
           onChange={onRightShiftPercentChange}
-          onCommit={(v) => persistDotTuningValue("navigator", "rightShiftPercent", v)}
+          onCommit={(v) => persistDotTuningValue(componentId,"rightShiftPercent", v)}
         />
         <TuningSlider
           label="下移"
@@ -833,7 +859,7 @@ function NavigatorTuningPanel({
           step={1}
           unit="%"
           onChange={onDownShiftPercentChange}
-          onCommit={(v) => persistDotTuningValue("navigator", "downShiftPercent", v)}
+          onCommit={(v) => persistDotTuningValue(componentId,"downShiftPercent", v)}
         />
         <TuningSlider
           label="大小"
@@ -843,10 +869,11 @@ function NavigatorTuningPanel({
           step={1}
           unit="%"
           onChange={onSizePercentChange}
-          onCommit={(v) => persistDotTuningValue("navigator", "sizePercent", v)}
+          onCommit={(v) => persistDotTuningValue(componentId,"sizePercent", v)}
         />
       </div>
 
+      {!compact && (
       <div className="flex flex-col gap-2 border-t border-black/[0.06] pt-3">
         <p className="text-[11px] font-medium text-[#1c1917]">亮度（黑底抠像）</p>
         <TuningSlider
@@ -857,7 +884,7 @@ function NavigatorTuningPanel({
           step={0.01}
           unit=""
           onChange={onOpacityThresholdChange}
-          onCommit={(v) => persistDotTuningValue("navigator", "opacityThreshold", v)}
+          onCommit={(v) => persistDotTuningValue(componentId,"opacityThreshold", v)}
         />
         <TuningSlider
           label="柔化"
@@ -867,7 +894,7 @@ function NavigatorTuningPanel({
           step={0.01}
           unit=""
           onChange={onSoftnessChange}
-          onCommit={(v) => persistDotTuningValue("navigator", "softness", v)}
+          onCommit={(v) => persistDotTuningValue(componentId,"softness", v)}
         />
         <TuningSlider
           label="对比度"
@@ -877,10 +904,12 @@ function NavigatorTuningPanel({
           step={0.05}
           unit=""
           onChange={onContrastChange}
-          onCommit={(v) => persistDotTuningValue("navigator", "contrast", v)}
+          onCommit={(v) => persistDotTuningValue(componentId,"contrast", v)}
         />
       </div>
+      )}
 
+      {!compact && (
       <div className="flex flex-col gap-2 border-t border-black/[0.06] pt-3">
         <p className="text-[11px] font-medium text-[#1c1917]">颜色 / 模糊</p>
         <TuningSlider
@@ -891,14 +920,14 @@ function NavigatorTuningPanel({
           step={0.5}
           unit="px"
           onChange={onBlurPxChange}
-          onCommit={(v) => persistDotTuningValue("navigator", "blurPx", v)}
+          onCommit={(v) => persistDotTuningValue(componentId,"blurPx", v)}
         />
         <CommitColorPicker
           label="暗部"
           value={colorLow}
           onCommit={(v) => {
             onColorLowChange(v);
-            persistDotTuningValue("navigator", "colorLow", v);
+            persistDotTuningValue(componentId,"colorLow", v);
           }}
         />
         <CommitColorPicker
@@ -906,10 +935,11 @@ function NavigatorTuningPanel({
           value={colorHigh}
           onCommit={(v) => {
             onColorHighChange(v);
-            persistDotTuningValue("navigator", "colorHigh", v);
+            persistDotTuningValue(componentId,"colorHigh", v);
           }}
         />
       </div>
+      )}
 
       <div className="flex flex-col gap-2 border-t border-black/[0.06] pt-3">
         <p className="text-[11px] font-medium text-[#1c1917]">鼠标悬浮吸附</p>
@@ -921,7 +951,7 @@ function NavigatorTuningPanel({
           step={0.01}
           unit=""
           onChange={onPointerRadiusChange}
-          onCommit={(v) => persistDotTuningValue("navigator", "pointerRadius", v)}
+          onCommit={(v) => persistDotTuningValue(componentId,"pointerRadius", v)}
         />
         <TuningSlider
           label="吸附力"
@@ -931,7 +961,7 @@ function NavigatorTuningPanel({
           step={0.01}
           unit=""
           onChange={onPointerAttractChange}
-          onCommit={(v) => persistDotTuningValue("navigator", "pointerAttract", v)}
+          onCommit={(v) => persistDotTuningValue(componentId,"pointerAttract", v)}
         />
         <TuningSlider
           label="放大"
@@ -941,14 +971,14 @@ function NavigatorTuningPanel({
           step={0.05}
           unit="×"
           onChange={onPointerSizeBoostChange}
-          onCommit={(v) => persistDotTuningValue("navigator", "pointerSizeBoost", v)}
+          onCommit={(v) => persistDotTuningValue(componentId,"pointerSizeBoost", v)}
         />
         <CommitColorPicker
           label="染色"
           value={hoverColor}
           onCommit={(v) => {
             onHoverColorChange(v);
-            persistDotTuningValue("navigator", "hoverColor", v);
+            persistDotTuningValue(componentId,"hoverColor", v);
           }}
         />
       </div>
@@ -963,7 +993,7 @@ function NavigatorTuningPanel({
           step={0.001}
           unit=""
           onChange={onJitterChange}
-          onCommit={(v) => persistDotTuningValue("navigator", "jitter", v)}
+          onCommit={(v) => persistDotTuningValue(componentId,"jitter", v)}
         />
         <TuningSlider
           label="边缘喷散"
@@ -973,7 +1003,7 @@ function NavigatorTuningPanel({
           step={0.002}
           unit=""
           onChange={onEdgeSprayChange}
-          onCommit={(v) => persistDotTuningValue("navigator", "edgeSpray", v)}
+          onCommit={(v) => persistDotTuningValue(componentId,"edgeSpray", v)}
         />
         <TuningSlider
           label="大小随机"
@@ -983,7 +1013,7 @@ function NavigatorTuningPanel({
           step={0.02}
           unit=""
           onChange={onSizeVarianceChange}
-          onCommit={(v) => persistDotTuningValue("navigator", "sizeVariance", v)}
+          onCommit={(v) => persistDotTuningValue(componentId,"sizeVariance", v)}
         />
       </div>
     </TuningPanelShell>

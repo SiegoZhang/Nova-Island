@@ -43,6 +43,15 @@ const COMPONENT_DEFAULTS: Record<
     constName: "NAVIGATOR_DEFAULTS",
     snapshotConstName: "AI_COMMUNITY_NAVIGATOR_DEFAULTS_SNAPSHOT",
   },
+  // 首页 AI 社群板块中间「成为领航员」点阵人像的专属参数块，写回
+  // AiCommunityCarousel.tsx 的 AI_COMMUNITY_NAVIGATOR_DEFAULTS，不碰
+  // NavigatorDotMatrix 里给 /ai 手风琴用的 NAVIGATOR_DEFAULTS。没有单独的
+  // 存档快照常量，snapshotConstName 复用同名，tokens.ts 里找不到就跳过。
+  aiCommunityNavigator: {
+    file: "src/components/AiCommunityCarousel.tsx",
+    constName: "AI_COMMUNITY_NAVIGATOR_DEFAULTS",
+    snapshotConstName: "AI_COMMUNITY_NAVIGATOR_DEFAULTS",
+  },
   // FDE 第一章卡片右侧的点阵地球，没有单独的存档快照常量，
   // snapshotConstName 复用同一个名字（tokens.ts 里找不到这个块时
   // replaceInBlock 会原样跳过，不报错也不会误改别的常量）。

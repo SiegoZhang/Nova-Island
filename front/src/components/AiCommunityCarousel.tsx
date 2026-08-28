@@ -28,6 +28,24 @@ import { eMono } from "@/lib/eleven";
 
 const WHEEL_GESTURE_IDLE_MS = 200;
 
+// 中间「成为领航员」点阵人像的构图 / 悬浮 / 散布参数。开发环境下点阵右下角
+// 的 ⚙ 面板（NavigatorDotMatrix 内置，tuningId="aiCommunityNavigator"）拖动
+// 松手后，会由 /api/dev/dot-tuning 直接写回这个常量块——不需要手动抄数值。
+// 这些是首页实例专用，跟 /ai 手风琴用的 NAVIGATOR_DEFAULTS 互不影响。
+const AI_COMMUNITY_NAVIGATOR_DEFAULTS = {
+  sizePercent: 120,
+  rightShiftPercent: 0,
+  downShiftPercent: 0,
+  density: 2,
+  dotMaxSize: 3.2,
+  jitter: 0.005,
+  edgeSpray: 0.035,
+  sizeVariance: 0.5,
+  pointerRadius: 0.16,
+  pointerAttract: 0.22,
+  pointerSizeBoost: 0,
+} as const;
+
 export function AiCommunityCarousel() {
   const [active, setActive] = useState(0);
   const activeRef = useRef(0);
@@ -152,15 +170,9 @@ export function AiCommunityCarousel() {
                 <NavigatorDotMatrix
                   className="fade-in"
                   background="#000000"
-                  sizePercent={120}
-                  rightShiftPercent={0}
-                  density={2}
-                  dotMaxSize={3.2}
-                  jitter={0.005}
-                  edgeSpray={0.035}
-                  sizeVariance={0.5}
-                  pointerAttract={0.22}
-                  pointerSizeBoost={0}
+                  tuningId="aiCommunityNavigator"
+                  compactTuning
+                  {...AI_COMMUNITY_NAVIGATOR_DEFAULTS}
                 />
               </LazyMount>
             </div>
