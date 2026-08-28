@@ -33,7 +33,7 @@ const WHEEL_GESTURE_IDLE_MS = 200;
 // 松手后，会由 /api/dev/dot-tuning 直接写回这个常量块——不需要手动抄数值。
 // 这些是首页实例专用，跟 /ai 手风琴用的 NAVIGATOR_DEFAULTS 互不影响。
 const AI_COMMUNITY_NAVIGATOR_DEFAULTS = {
-  sizePercent: 118,
+  sizePercent: 128,
   rightShiftPercent: 0,
   downShiftPercent: 0,
   density: 2,
@@ -133,26 +133,26 @@ export function AiCommunityCarousel() {
             data-parallax
             className="reveal group relative mx-auto aspect-square w-[min(88vw,520px)] md:w-[min(60vh,600px)]"
           >
-            {/* 外圈大圆 + 十字线 */}
-            <div className="absolute inset-[6%] rounded-full border border-white/10" />
+            {/* 外圈大圆 + 十字线 —— 跟着放大的人形一起撑大，圆已到方盒边缘 */}
+            <div className="absolute inset-[-2%] rounded-full border border-white/10" />
             <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-white/10" />
             <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-white/10" />
             {/* 左右边缘的小十字标记（Figma 参考图里那两个 +） */}
             <span
-              className={`${eMono} absolute top-1/2 -left-[4%] -translate-y-1/2 text-[12px] text-white/25`}
+              className={`${eMono} absolute top-1/2 -left-[7%] -translate-y-1/2 text-[12px] text-white/25`}
             >
               +
             </span>
             <span
-              className={`${eMono} absolute top-1/2 -right-[4%] -translate-y-1/2 text-[12px] text-white/25`}
+              className={`${eMono} absolute top-1/2 -right-[7%] -translate-y-1/2 text-[12px] text-white/25`}
             >
               +
             </span>
 
             {/* 实线方框 A —— 悬浮时向左下错位并轻微逆时针旋转 */}
-            <div className="absolute inset-[18%] border border-[#9ca3af]/55 transition-transform duration-500 ease-out group-hover:-translate-x-[6%] group-hover:translate-y-[5%] group-hover:-rotate-2" />
+            <div className="absolute inset-[9%] border border-[#9ca3af]/55 transition-transform duration-500 ease-out group-hover:-translate-x-[6%] group-hover:translate-y-[5%] group-hover:-rotate-2" />
             {/* 虚线方框 B —— 默认右上错位，悬浮时错得更开并顺时针旋转 */}
-            <div className="absolute inset-[18%] -translate-y-[10%] translate-x-[13%] border border-dashed border-[#9ca3af]/55 transition-transform duration-500 ease-out group-hover:-translate-y-[17%] group-hover:translate-x-[23%] group-hover:rotate-2">
+            <div className="absolute inset-[9%] -translate-y-[10%] translate-x-[13%] border border-dashed border-[#9ca3af]/55 transition-transform duration-500 ease-out group-hover:-translate-y-[17%] group-hover:translate-x-[23%] group-hover:rotate-2">
               <span
                 className={`${eMono} absolute right-1.5 top-1.5 bg-[#f3f4f6] px-1.5 py-0.5 text-[9px] font-bold text-[#070709]`}
               >
@@ -161,7 +161,7 @@ export function AiCommunityCarousel() {
             </div>
 
             {/* 内同心圆 */}
-            <div className="absolute inset-[27%] rounded-full border border-white/[0.06]" />
+            <div className="absolute inset-[19%] rounded-full border border-white/[0.06]" />
 
             {/* 点阵人像（常驻，不随滚动切换）。视频渲染区用负 inset 撑到比
                 外圈装饰框还大一圈，人形整体更大、可以溢出同心圆；内部再靠
