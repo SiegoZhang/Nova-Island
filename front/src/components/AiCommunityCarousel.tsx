@@ -177,8 +177,10 @@ export function AiCommunityCarousel() {
             </p>
           </div>
 
-          {/* ── 右列：雷达图 + 读数 ── */}
-          <div className="reveal flex flex-col items-end gap-9">
+          {/* ── 右列：雷达图 + 读数 ──
+              整体再往左收 md:pr-12，避开 SlideDeck 右侧那条竖向翻屏圆点导航
+              （fixed right-4），不跟它重叠。 */}
+          <div className="reveal flex flex-col items-end gap-9 md:pr-12">
             <CommunityRadar dims={feature.dimensions} />
             <div key={active} className="fade-in flex w-full flex-col items-end text-right">
               <p className={`${eMono} text-[10px] text-[#9ca3af]`}>
@@ -223,10 +225,12 @@ export function AiCommunityCarousel() {
 }
 
 // 四维雷达图：中心 50/50，四个顶点各沿一条半轴伸出（交流↑ / 收获→ /
-// 提升↓ / 前沿←）。琥珀色数据区用 clip-path 多边形，配上四根轴向辐条和
-// 顶点圆点——clip-path / height / width / top / left 全都能用纯 CSS 过渡，
-// 切换维度时多边形平滑变形，不依赖任何动画库。
+// 提升↓ / 前沿←）。数据区用 clip-path 多边形（纯白半透明，营造克制的
+// 高级感），配四根轴向辐条 + 发光顶点圆点——clip-path / height / width /
+// top / left 全都能用纯 CSS 过渡，切换维度时多边形平滑变形。
 const RADAR_MAX = 45; // 顶点最远伸到盒子的 45%（留出到最外层菱形环的余量）
+
+const RADAR_RING_TONES = ["border-white/25", "border-white/[0.14]", "border-white/[0.08]"];
 
 function CommunityRadar({ dims }: { dims: AiCommunityDimensions }) {
   const { exchange, gain, growth, frontier } = dims;
@@ -234,27 +238,27 @@ function CommunityRadar({ dims }: { dims: AiCommunityDimensions }) {
     50 + RADAR_MAX * growth
   }%, ${50 - RADAR_MAX * frontier}% 50%)`;
 
-  const spoke = "absolute bg-[#f59e0b]/70 transition-[width,height] duration-500 ease-out";
+  const spoke = "absolute bg-white/40 transition-[width,height] duration-500 ease-out";
   const dot =
-    "absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#f59e0b] transition-[top,left] duration-500 ease-out";
+    "absolute size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_7px_rgba(255,255,255,0.55)] transition-[top,left] duration-500 ease-out";
 
   return (
     <div className="relative size-[176px] shrink-0" aria-hidden="true">
-      {/* 菱形网格环 */}
-      {[1, 0.66, 0.33].map((s) => (
+      {/* 菱形网格环——由外到内逐层变淡 */}
+      {[1, 0.66, 0.33].map((s, i) => (
         <div
           key={s}
-          className="absolute inset-0 border border-white/10"
+          className={`absolute inset-0 border ${RADAR_RING_TONES[i]}`}
           style={{ transform: `rotate(45deg) scale(${s})` }}
         />
       ))}
       {/* 十字线 */}
-      <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-white/10" />
-      <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-white/10" />
+      <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-white/[0.09]" />
+      <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-white/[0.09]" />
 
-      {/* 琥珀色数据区 */}
+      {/* 白色半透明数据区 */}
       <div
-        className="absolute inset-0 bg-[#f59e0b]/20 transition-[clip-path] duration-500 ease-out"
+        className="absolute inset-0 bg-white/[0.1] transition-[clip-path] duration-500 ease-out"
         style={{ clipPath: clip, WebkitClipPath: clip }}
       />
 
@@ -284,22 +288,22 @@ function CommunityRadar({ dims }: { dims: AiCommunityDimensions }) {
 
       {/* 维度标签 */}
       <span
-        className={`${eMono} absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-[#9ca3af]`}
+        className={`${eMono} absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white/45`}
       >
         交流
       </span>
       <span
-        className={`${eMono} absolute -right-8 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[#9ca3af]`}
+        className={`${eMono} absolute -right-8 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/45`}
       >
         收获
       </span>
       <span
-        className={`${eMono} absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-[#9ca3af]`}
+        className={`${eMono} absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white/45`}
       >
         提升
       </span>
       <span
-        className={`${eMono} absolute -left-8 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[#9ca3af]`}
+        className={`${eMono} absolute -left-8 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/45`}
       >
         前沿
       </span>
