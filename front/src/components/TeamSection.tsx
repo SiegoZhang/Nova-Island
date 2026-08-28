@@ -310,11 +310,17 @@ export function TeamSection() {
     <section id="team" className="w-full">
       <div className={`${ePageContainer} grid gap-14 md:grid-cols-[40fr_60fr] md:items-center md:gap-16`}>
         <div data-parallax className="reveal">
-          <p className={eEyebrowDark}>我们的团队</p>
-          <h2 className="mt-4 text-[32px] leading-[1.1] font-medium tracking-[-0.02em] text-[#f5f5f5] md:text-[40px]">
+          <p data-title-reveal="1" className={eEyebrowDark}>我们的团队</p>
+          <h2
+            data-title-reveal="2"
+            className="mt-4 text-[32px] leading-[1.1] font-medium tracking-[-0.02em] text-[#f5f5f5] md:text-[40px]"
+          >
             一支相信「亲自动手」的工程团队
           </h2>
-          <p className="mt-4 max-w-[440px] text-[16px] leading-[1.65] text-[#a1a1aa]">
+          <p
+            data-title-reveal="3"
+            className="mt-4 max-w-[440px] text-[16px] leading-[1.65] text-[#a1a1aa]"
+          >
             我们由长期扎根 AI
             工程化一线的工程师与研究者组成，团队规模不大，但每个人都直接对接客户场景与交付结果。
           </p>

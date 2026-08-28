@@ -120,10 +120,16 @@ export function ContactCtaSection() {
           </div>
 
           <div className="reveal absolute inset-0 z-10 flex flex-col items-center justify-center px-6 text-center">
-            <h2 className="text-[20px] leading-[1.15] font-medium tracking-[-0.02em] text-[#F8FAFA] sm:text-[26px] md:text-[32px]">
+            <h2
+              data-title-reveal="1"
+              className="text-[20px] leading-[1.15] font-medium tracking-[-0.02em] text-[#F8FAFA] sm:text-[26px] md:text-[32px]"
+            >
               继续了解新岛
             </h2>
-            <p className="mt-2 max-w-[160px] text-[13px] leading-[1.55] text-[#A3A5A6] sm:mt-3 sm:max-w-[230px] sm:text-[15px] sm:leading-[1.65]">
+            <p
+              data-title-reveal="2"
+              className="mt-2 max-w-[160px] text-[13px] leading-[1.55] text-[#A3A5A6] sm:mt-3 sm:max-w-[230px] sm:text-[15px] sm:leading-[1.65]"
+            >
               有问题、有合作意向，或者只是想聊聊 AI，都欢迎找我们。
             </p>
             <Link

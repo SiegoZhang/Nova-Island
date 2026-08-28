@@ -132,11 +132,17 @@ export function FdeSection() {
     <section id="fde" className="w-full">
       <div className={ePageContainer}>
         <div data-parallax className="reveal mb-10 text-center">
-          <p className={eEyebrowDark}>FDE业务</p>
-          <h2 className="mt-4 text-[32px] leading-[1.1] font-medium tracking-[-0.02em] text-[#f5f5f5] md:text-[40px]">
+          <p data-title-reveal="1" className={eEyebrowDark}>FDE业务</p>
+          <h2
+            data-title-reveal="2"
+            className="mt-4 text-[32px] leading-[1.1] font-medium tracking-[-0.02em] text-[#f5f5f5] md:text-[40px]"
+          >
             从认知到落地的工程化路径
           </h2>
-          <p className="mx-auto mt-3 max-w-[540px] text-[16px] leading-[1.65] text-[#a1a1aa]">
+          <p
+            data-title-reveal="3"
+            className="mx-auto mt-3 max-w-[540px] text-[16px] leading-[1.65] text-[#a1a1aa]"
+          >
             Forward Deployed Engineer — 区别于标准化方案，我们深入客户的真实业务场景，以工程化能力驱动
             AI 的规模化落地与持续见效。
           </p>

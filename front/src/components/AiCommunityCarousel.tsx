@@ -81,11 +81,14 @@ export function AiCommunityCarousel() {
           <div className="reveal flex flex-col gap-7">
             <div>
               <h2
+                data-title-reveal="1"
                 className={`${eMono} whitespace-nowrap text-[clamp(40px,5vw,56px)] font-bold leading-[0.95] tracking-[-0.02em] text-[#f3f4f6]`}
               >
                 AI社群
               </h2>
-              <p className={`${eMono} mt-2 text-[12px] text-[#9ca3af]`}>新岛AI</p>
+              <p data-title-reveal="2" className={`${eMono} mt-2 text-[12px] text-[#9ca3af]`}>
+                新岛AI
+              </p>
             </div>
             <div>
               <p className={`${eMono} text-[9px] uppercase tracking-[0.15em] text-[#4b5563]`}>Intro</p>

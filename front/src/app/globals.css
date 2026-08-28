@@ -330,6 +330,23 @@ button {
   filter: none;
 }
 
+/* 分屏标题「每次翻到该屏都重新淡入」：不同于 .reveal（只播一次），这条
+   用 transition 驱动，[data-active] 来回切换时反复触发。纯不透明度淡入，
+   data-title-reveal 的值（1/2/3…）控制同屏内多个标题元素的错峰。 */
+[data-slide] [data-title-reveal] {
+  opacity: 0;
+  transition: opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-slide] [data-title-reveal="2"] {
+  transition-delay: 0.12s;
+}
+[data-slide] [data-title-reveal="3"] {
+  transition-delay: 0.24s;
+}
+[data-slide][data-active] [data-title-reveal] {
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -358,5 +375,9 @@ button {
     opacity: 1 !important;
     transform: none !important;
     filter: none !important;
+  }
+  [data-slide] [data-title-reveal] {
+    opacity: 1 !important;
+    transition: none !important;
   }
 }
