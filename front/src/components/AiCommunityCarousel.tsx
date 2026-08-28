@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDownIcon } from "@/components/icons";
 import { LazyMount } from "@/components/LazyMount";
 import { NavigatorDotMatrix } from "@/components/NavigatorDotMatrix";
+import { useSlideDeckOptional } from "@/components/SlideDeck";
 import {
   aiCommunityFeatures as features,
   type AiCommunityDimensions,
@@ -33,7 +34,7 @@ const WHEEL_GESTURE_IDLE_MS = 200;
 // 松手后，会由 /api/dev/dot-tuning 直接写回这个常量块——不需要手动抄数值。
 // 这些是首页实例专用，跟 /ai 手风琴用的 NAVIGATOR_DEFAULTS 互不影响。
 const AI_COMMUNITY_NAVIGATOR_DEFAULTS = {
-  sizePercent: 130,
+  sizePercent: 104,
   rightShiftPercent: 0,
   downShiftPercent: 0,
   density: 2,
@@ -54,6 +55,15 @@ export function AiCommunityCarousel() {
   const activeRef = useRef(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const wheelIdleRef = useRef<number | null>(null);
+
+  // 翻页粒子形变过渡：把人形渲染区注册为「ai」落点锚，并让整屏内容随
+  // --ai-fde-t 淡出（粒子层接管），见 AiFdeParticleMorph / SlideDeck。
+  const registerMorphAnchor = useSlideDeckOptional()?.registerMorphAnchor;
+  const figureMountRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    registerMorphAnchor?.("ai", figureMountRef.current);
+    return () => registerMorphAnchor?.("ai", null);
+  }, [registerMorphAnchor]);
 
   const go = useCallback((next: number) => {
     if (next < 0 || next >= features.length || next === activeRef.current) return;
@@ -95,6 +105,7 @@ export function AiCommunityCarousel() {
     <section id="ai" className="w-full">
       <div
         ref={rootRef}
+        style={{ opacity: "clamp(0, calc((0.12 - var(--ai-fde-t, 0)) / 0.12), 1)" }}
         className="relative mx-auto flex min-h-[100svh] w-full max-w-[1440px] flex-col overflow-hidden md:h-[100svh]"
       >
         <div className="relative z-10 flex flex-1 flex-col gap-14 px-6 py-24 md:grid md:grid-cols-[minmax(240px,320px)_minmax(0,1fr)_minmax(280px,340px)] md:items-center md:gap-8 md:px-12 md:py-0">
@@ -173,7 +184,10 @@ export function AiCommunityCarousel() {
                 16:9 横幅，塞进这个"更高的框"里会变成按宽度撑满、纵向留黑边，
                 于是人形在窗口里的实际高度矮了一截，还稳稳居中、不碰下方
                 LAMBDA 轴。 */}
-            <div className="absolute -left-[10%] -right-[10%] -top-[20%] -bottom-[20%] overflow-hidden">
+            <div
+              ref={figureMountRef}
+              className="absolute -left-[10%] -right-[10%] -top-[20%] -bottom-[20%] overflow-hidden"
+            >
               <LazyMount>
                 <NavigatorDotMatrix
                   className="fade-in"

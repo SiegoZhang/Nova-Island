@@ -7,6 +7,7 @@ import { CardBreadcrumb } from "@/components/CardBreadcrumb";
 import { FdeBrandGrid } from "@/components/FdeBrandGrid";
 import { FdeGlobeLogos } from "@/components/FdeGlobeLogos";
 import { ArrowRightIcon } from "@/components/icons";
+import { useSlideDeckOptional } from "@/components/SlideDeck";
 import { eEyebrowDark, eMono, ePageContainer } from "@/lib/eleven";
 
 // FDE 卡片：右侧点阵地球「保持不动」，作为整张卡片固定的背景元素；切换分页
@@ -101,6 +102,15 @@ export function FdeSection() {
   const isAnimatingRef = useRef(false);
   const stackRef = useRef<HTMLDivElement>(null);
 
+  // 翻页粒子形变过渡：点阵地球注册为「fde」落点锚，整屏内容随 --ai-fde-t
+  // 反向淡入（粒子层炸开成球后交回给真正的点阵地球），见 AiFdeParticleMorph。
+  const registerMorphAnchor = useSlideDeckOptional()?.registerMorphAnchor;
+  const globeAnchorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    registerMorphAnchor?.("fde", globeAnchorRef.current);
+    return () => registerMorphAnchor?.("fde", null);
+  }, [registerMorphAnchor]);
+
   const goTo = (index: number) => {
     if (index < 0 || index >= highlights.length || isAnimatingRef.current) return;
     isAnimatingRef.current = true;
@@ -129,7 +139,11 @@ export function FdeSection() {
   }, []);
 
   return (
-    <section id="fde" className="w-full">
+    <section
+      id="fde"
+      className="w-full"
+      style={{ opacity: "clamp(0, calc((var(--ai-fde-t, 0) - 0.88) / 0.12), 1)" }}
+    >
       <div className={ePageContainer}>
         <div data-parallax className="reveal mb-10 text-center">
           <p data-title-reveal="1" className={eEyebrowDark}>FDE业务</p>
@@ -158,10 +172,14 @@ export function FdeSection() {
           {/* 固定不动的点阵地球——整张卡片共用一个实例，切换分页时它不参与
               任何过渡。占右半，桌面才显示。 */}
           <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[54%] items-center justify-center md:flex">
-            <FdeGlobeLogos
-              showLogos={false}
+            {/* globeAnchorRef 精确框住点阵地球本体（不是 54% 的外框），
+                作为翻页粒子过渡的「fde」落点锚。 */}
+            <div
+              ref={globeAnchorRef}
               className="relative aspect-square h-full max-h-[440px] w-full max-w-[440px]"
-            />
+            >
+              <FdeGlobeLogos showLogos={false} className="size-full" />
+            </div>
           </div>
 
           {highlights.map(({ step, title, description }, index) => {

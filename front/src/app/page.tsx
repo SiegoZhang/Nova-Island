@@ -19,7 +19,9 @@ export default function Home() {
     <HeroThemeProvider>
       <div className="h-[100svh] overflow-hidden bg-black">
         <Navbar />
-        <SlideDeck>
+        {/* morphBoundaryIndex={2}：AI社群（第 3 屏）→ FDE（第 4 屏）之间启用
+            粒子形变过渡——人形粒子聚拢再炸开成点阵地球，见 AiFdeParticleMorph。 */}
+        <SlideDeck morphBoundaryIndex={2}>
           <Slide className="bg-black">
             <HeroSection />
           </Slide>

@@ -5,10 +5,16 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
+  type MutableRefObject,
   type ReactNode,
 } from "react";
+
+import { AiFdeParticleMorph } from "@/components/AiFdeParticleMorph";
+import { prefersReducedMotion } from "@/lib/dotSystem/runtime";
 
 // 首页「幻灯片」容器：每一屏占满视口，滚轮/触屏在屏之间吸附切换，配键盘
 // 翻页、右侧圆点导航、顶部进度条。不劫持 wheel —— 用原生 CSS scroll-snap
@@ -21,11 +27,29 @@ import {
 // 子元素做轻微纵向视差；[data-active] 标记当前屏，globals.css 里据此让
 // 区块内已有的 .reveal / .reveal-atom 入场动画「滚到才播放」。
 
+/** AI社群 → FDE 翻页粒子形变过渡用：两屏各自把「粒子落点参照元素」注册进来
+ *  （AI 的人形渲染区、FDE 的点阵地球容器），粒子层据此取屏幕矩形。 */
+export type MorphAnchorKey = "ai" | "fde";
+
+export interface DeckTransitionState {
+  /** 过渡进度 0..1（AI→FDE）。 */
+  t: number;
+  /** AI 屏相对其吸附位已滚过的像素（≥0）：把 AI 锚点屏幕 Y 加上它 →
+   *  AI 吸附时的「定格」屏幕位置。 */
+  aShiftPx: number;
+  /** FDE 屏相对其吸附位的像素偏移（≤0，FDE 还在下方）：同理加到 FDE 锚点 Y。 */
+  bShiftPx: number;
+}
+
 interface DeckContextValue {
   register: (el: HTMLElement) => () => void;
   scrollToIndex: (index: number) => void;
   activeIndex: number;
   count: number;
+  /** 过渡状态，每帧写在这个 ref 上，供粒子层的 rAF 直接读，不触发 React 重渲染。 */
+  transitionRef: MutableRefObject<DeckTransitionState>;
+  registerMorphAnchor: (key: MorphAnchorKey, el: HTMLElement | null) => void;
+  morphAnchorsRef: MutableRefObject<Record<MorphAnchorKey, HTMLElement | null>>;
 }
 
 const DeckContext = createContext<DeckContextValue | null>(null);
@@ -36,16 +60,54 @@ export function useSlideDeck(): DeckContextValue {
   return ctx;
 }
 
+/** SlideDeck 外复用相关组件时也能安全调用——不在 deck 里就返回 null。 */
+export function useSlideDeckOptional(): DeckContextValue | null {
+  return useContext(DeckContext);
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-export function SlideDeck({ children }: { children: ReactNode }) {
+const EMPTY_SUBSCRIBE = () => () => {};
+
+export function SlideDeck({
+  children,
+  /** 传入某屏 index，则在该屏 → 下一屏之间启用粒子形变过渡（当前仅
+   *  AI社群→FDE，index 2）。不传 = 关闭。 */
+  morphBoundaryIndex,
+}: {
+  children: ReactNode;
+  morphBoundaryIndex?: number;
+}) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const slidesRef = useRef<HTMLElement[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [count, setCount] = useState(0);
   const [progress, setProgress] = useState(0);
+
+  const transitionRef = useRef<DeckTransitionState>({ t: 0, aShiftPx: 0, bShiftPx: 0 });
+  const morphAnchorsRef = useRef<Record<MorphAnchorKey, HTMLElement | null>>({
+    ai: null,
+    fde: null,
+  });
+  const registerMorphAnchor = useCallback(
+    (key: MorphAnchorKey, el: HTMLElement | null) => {
+      morphAnchorsRef.current[key] = el;
+    },
+    [],
+  );
+
+  // 粒子层是否挂载：只在客户端、非 reduced-motion、桌面精确指针下开。
+  // useSyncExternalStore：SSR 快照恒 false，客户端再算真值，无 hydration 冲突。
+  const morphEnabled = useSyncExternalStore(
+    EMPTY_SUBSCRIBE,
+    () =>
+      morphBoundaryIndex != null &&
+      !prefersReducedMotion() &&
+      window.matchMedia("(min-width: 768px) and (pointer: fine)").matches,
+    () => false,
+  );
 
   const register = useCallback((el: HTMLElement) => {
     const list = slidesRef.current;
@@ -99,6 +161,25 @@ export function SlideDeck({ children }: { children: ReactNode }) {
       const max = scroller.scrollHeight - scroller.clientHeight;
       setProgress(max > 0 ? clamp(scroller.scrollTop / max, 0, 1) : 0);
       setActiveIndex((prev) => (prev === best ? prev : best));
+
+      // AI社群 → FDE 过渡进度：从 morphBoundaryIndex 屏的吸附位滚到下一屏
+      // 吸附位之间的 0..1，写进 ref（粒子层 rAF 读）+ CSS 变量（两屏淡入淡出）。
+      if (morphBoundaryIndex != null) {
+        const a = slidesRef.current[morphBoundaryIndex];
+        const b = slidesRef.current[morphBoundaryIndex + 1];
+        let t = 0;
+        let aShiftPx = 0;
+        let bShiftPx = 0;
+        if (a && b && b.offsetTop > a.offsetTop) {
+          t = clamp((scroller.scrollTop - a.offsetTop) / (b.offsetTop - a.offsetTop), 0, 1);
+          aShiftPx = scroller.scrollTop - a.offsetTop;
+          bShiftPx = scroller.scrollTop - b.offsetTop;
+        }
+        transitionRef.current.t = t;
+        transitionRef.current.aShiftPx = aShiftPx;
+        transitionRef.current.bShiftPx = bShiftPx;
+        scroller.style.setProperty("--ai-fde-t", t.toFixed(4));
+      }
     };
 
     const onScroll = () => {
@@ -117,7 +198,7 @@ export function SlideDeck({ children }: { children: ReactNode }) {
       resizeObserver.disconnect();
       cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [morphBoundaryIndex]);
 
   // 键盘翻页：↑↓ / PageUp/PageDown / Home / End。输入框内不拦截。
   useEffect(() => {
@@ -159,8 +240,23 @@ export function SlideDeck({ children }: { children: ReactNode }) {
     scroller.scrollTo({ top, behavior: "auto" });
   }, []);
 
+  // progress 每帧变 → SlideDeck 每帧重渲染；context value 用 useMemo 稳住，
+  // 只在 activeIndex / count 变化时才换新引用，避免消费方每帧跟着重渲染。
+  const contextValue = useMemo<DeckContextValue>(
+    () => ({
+      register,
+      scrollToIndex,
+      activeIndex,
+      count,
+      transitionRef,
+      registerMorphAnchor,
+      morphAnchorsRef,
+    }),
+    [register, scrollToIndex, activeIndex, count, registerMorphAnchor],
+  );
+
   return (
-    <DeckContext.Provider value={{ register, scrollToIndex, activeIndex, count }}>
+    <DeckContext.Provider value={contextValue}>
       <div
         ref={scrollerRef}
         data-slide-deck
@@ -168,6 +264,10 @@ export function SlideDeck({ children }: { children: ReactNode }) {
       >
         {children}
       </div>
+
+      {morphEnabled && (
+        <AiFdeParticleMorph transitionRef={transitionRef} morphAnchorsRef={morphAnchorsRef} />
+      )}
 
       {/* 顶部进度条 —— mix-blend-difference 让它在深色/浅色屏上都可见。 */}
       <div
