@@ -48,7 +48,7 @@ export const aiCommunityFeatures: AiCommunityFeature[] = [
   {
     label: "超级内容",
     description:
-      "深度长文、真实案例拆解与可复用的方法论沉淀，覆盖从技术原理到落地路径的完整链条。不追热点标题，只把一件事背后的逻辑讲透，让你对 AI 的理解真正比别人深一层。",
+      "深度长文、真实案例拆解与可复用的方法论沉淀，覆盖从技术原理到落地路径的完整链条。不追热点标题，只把一件事背后的逻辑讲透。",
     dimensions: { exchange: 0.3, gain: 0.9, growth: 0.86, frontier: 0.6 },
     // 环形球体视频素材（assets/环形球体.mp4）点阵化，见 RingSphereDotMatrix——
     // 视频背景是纯色蓝，用色键抠像而不是纯亮度阈值分离球体和背景。
@@ -57,7 +57,7 @@ export const aiCommunityFeatures: AiCommunityFeature[] = [
   {
     label: "工具教程",
     description:
-      "精选值得投入时间的 AI 工具，提供从注册配置、核心用法到进阶技巧的完整教程，并附上真实的使用场景与避坑提示。不做功能罗列，帮你把工具真正嵌进日常工作流。",
+      "精选值得投入时间的 AI 工具，提供从注册配置、核心用法到进阶技巧的完整教程，并附上真实使用场景与避坑提示，帮你把工具真正嵌进工作流。",
     dimensions: { exchange: 0.26, gain: 0.82, growth: 0.95, frontier: 0.48 },
     // 工具视频素材（assets/工具视频.mp4，齿轮/轴承分解组装）点阵化，见
     // ToolDotMatrix——跟旗帜视频一样是纯黑背景，用亮度阈值抠像，不需要色键。
@@ -75,7 +75,7 @@ export const aiCommunityFeatures: AiCommunityFeature[] = [
   {
     label: "同频集会",
     description:
-      "连接真实在做 AI 落地的人——创业者、产品、工程师与研究者，按行业和方向自然形成小圈子。在这里你可以抛出具体问题、交换一手资源与踩坑经验，也可能遇到下一个合作伙伴。",
+      "连接真实在做 AI 落地的人——创业者、产品、工程师与研究者，按行业和方向自然形成小圈子。你可以抛出具体问题、交换一手资源与踩坑经验。",
     dimensions: { exchange: 0.97, gain: 0.58, growth: 0.5, frontier: 0.44 },
     // 小球连接视频素材（assets/小球连接.mp4）点阵化，见 SphereConnectDotMatrix——
     // 跟旗帜/工具视频一样靠亮度阈值抠像，只是背景不是纯黑而是深蓝紫渐变，
@@ -85,7 +85,7 @@ export const aiCommunityFeatures: AiCommunityFeature[] = [
   {
     label: "成为领航员",
     description:
-      "持续输出内容、组织活动或帮助他人的活跃成员，可申请成为社群领航员，获得专属资源、优先曝光机会与更深度的圈层连接。我们希望社群的价值，由真正投入的人共同定义。",
+      "持续输出内容、组织活动或帮助他人的活跃成员，可申请成为社群领航员，获得专属资源、优先曝光机会与更深度的圈层连接，让社群价值由真正投入的人共同定义。",
     dimensions: { exchange: 0.8, gain: 0.7, growth: 0.92, frontier: 0.76 },
     // 领航员视频素材（assets/领航员视频.mp4）点阵化，见 NavigatorDotMatrix——
     // 跟旗帜/工具视频一样是纯黑背景，用亮度阈值抠像。
