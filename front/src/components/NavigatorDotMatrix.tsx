@@ -109,16 +109,25 @@ const VERTEX_SHADER = /* glsl */ `
     vec3 warpedPosition = vec3(jittered, 0.0);
     warpedPosition.xy += toPointer * pointerGlow * uPointerAttract;
 
-    // 冲散：把光标周围一圈粒子往外挤一点，不是清空。推力用环形分布
-    // （ring = 4t(1-t)，t 是到光标的归一化距离）——正中心几乎不推、
-    // 半径中段推得最多、边缘归零，所以光标处始终留着点、只是变稀。
-    // 再叠一点每点固定的随机偏转，避免挤出一个规整的圆环。
+    // 冲散：把光标周围一圈粒子往外挤，但刻意做得不规则——否则就是一圈
+    // 整整齐齐往外扩的圆环。每个点有自己固定的一组随机数：
+    //   · 推的方向在"背离光标"基础上随机偏转 ±~75°（有的斜着走、有的往回）
+    //   · 力度倍率 0~1.6（有的几乎不动、有的直接被甩飞）
+    //   · 再叠一段纯随机位移，彻底打散环形轮廓
+    // 环形分布 ring = 4t(1-t)：光标正中心几乎不推，只是被周围让出来的
+    // 空间衬得稀一点，不清空。
     float scatterT = clamp(pointerDist / max(uPointerRadius, 1e-4), 0.0, 1.0);
     float scatterRing = 4.0 * scatterT * (1.0 - scatterT);
+    vec2 sRnd = hash22(aUv * 217.3);
+    float sAng = (sRnd.x - 0.5) * 2.6;
+    float sMag = pow(sRnd.y, 1.4) * 1.6;
     vec2 awayDir = -toPointer / (pointerDist + 1e-4);
-    vec2 scatterNoise = (hash22(aUv * 217.3) - 0.5) * 0.45;
+    float sCos = cos(sAng);
+    float sSin = sin(sAng);
+    vec2 scatterDir = vec2(awayDir.x * sCos - awayDir.y * sSin, awayDir.x * sSin + awayDir.y * sCos);
+    vec2 scatterJit = (hash22(aUv * 91.7) - 0.5) * 1.4;
     float scatterAmt = scatterRing * uPointerActivity * step(0.003, mask) * uPointerScatter;
-    warpedPosition.xy += (awayDir + scatterNoise) * scatterAmt;
+    warpedPosition.xy += (scatterDir * sMag + scatterJit) * scatterAmt;
 
     vec4 mvPosition = modelViewMatrix * vec4(warpedPosition, 1.0);
     gl_Position = projectionMatrix * mvPosition;

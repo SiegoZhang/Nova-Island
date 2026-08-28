@@ -41,11 +41,11 @@ const AI_COMMUNITY_NAVIGATOR_DEFAULTS = {
   jitter: 0,
   edgeSpray: 0,
   sizeVariance: 0.46,
-  pointerRadius: 0.13,
+  pointerRadius: 0.04,
   // 鼠标划过时把光标周围一圈粒子往外挤一点（环形推力 + 每点随机偏转），
   // 不是清空——光标正中心几乎不推，粒子只是变稀。冲散和吸附反向，吸附归 0。
   pointerAttract: 0,
-  pointerScatter: 0.04,
+  pointerScatter: 0.025,
   pointerSizeBoost: 0,
 } as const;
 
