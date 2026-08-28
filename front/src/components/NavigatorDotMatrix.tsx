@@ -42,6 +42,10 @@ const VERTEX_SHADER = /* glsl */ `
   uniform float uPointerActivity;
   uniform float uPointerAttract;
   uniform float uPointerSizeBoost;
+  // ── 粒子散布（0 = 关闭，回到规整网格点阵）────────────────────
+  uniform float uJitter;       // 均匀位置抖动，打散"网格感"（本地坐标单位，全幅=1）
+  uniform float uEdgeSpray;    // 人像轮廓处的点额外沿径向往外喷，形成飘散的边缘
+  uniform float uSizeVariance; // 每点大小随机幅度 0~1
 
   attribute vec2 aUv;
 
@@ -50,6 +54,20 @@ const VERTEX_SHADER = /* glsl */ `
   // 鼠标邻近强度（0~1，越靠近光标越大），传给片元着色器做染色。
   varying float vPointerGlow;
 
+  // 无依赖 hash：把 UV 当种子生成 0~1 伪随机数，用来给每个点独立的抖动/
+  // 大小偏移。同一个点每帧结果一致（种子只跟 aUv 有关），所以粒子是"定
+  // 格散开"而不是每帧乱跳。
+  float hash12(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+  }
+  vec2 hash22(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.xx + p3.yz) * p3.zy);
+  }
+
   void main() {
     vec3 texel = texture2D(uTexture, aUv).rgb;
     float luminance = dot(texel, vec3(0.299, 0.587, 0.114));
@@ -57,30 +75,44 @@ const VERTEX_SHADER = /* glsl */ `
 
     float mask = smoothstep(uThreshold, uThreshold + uSoftness, luminance);
 
-    vec2 edge = abs(position.xy);
-    float fadeX = 1.0 - smoothstep(uFadeStart, 0.5, edge.x);
-    float fadeY = 1.0 - smoothstep(uFadeStart, 0.5, edge.y);
+    // 轮廓系数：亮度处于"半亮"区间时最大（≈ 人像外缘的线框），实心内部
+    // 与纯黑背景都接近 0 —— 用它决定哪些点要被喷散成飘散粒子。
+    float edgeFactor =
+      smoothstep(uThreshold, uThreshold + 0.18, luminance) *
+      (1.0 - smoothstep(0.4, 0.8, luminance));
+
+    // 位置抖动 + 边缘径向喷散
+    vec2 basePos = position.xy;
+    vec2 rnd = hash22(aUv * 141.7) - 0.5;
+    vec2 jittered = basePos + rnd * uJitter * (1.0 + edgeFactor * 3.0);
+    vec2 radial = basePos / (length(basePos) + 1e-4);
+    jittered += radial * edgeFactor * uEdgeSpray * hash12(aUv * 71.3);
+
+    vec2 edgeDist = abs(jittered);
+    float fadeX = 1.0 - smoothstep(uFadeStart, 0.5, edgeDist.x);
+    float fadeY = 1.0 - smoothstep(uFadeStart, 0.5, edgeDist.y);
     mask *= fadeX * fadeY;
+    // 边缘点再随机丢一部分，让轮廓"碎"成不连续的颗粒
+    mask *= mix(1.0, hash12(aUv * 29.1), edgeFactor * clamp(uEdgeSpray * 12.0, 0.0, 0.85));
 
     vLuminance = luminance;
     vMask = mask;
 
-    // 鼠标"吸附"：半径内已经可见的点朝鼠标位置轻微偏移 + 放大，营造被
-    // 吸过去的感觉；uPointerActivity 是移入/移出时缓动出来的 0~1 强度，
-    // 不是简单的开关，鼠标移开后会平滑收回而不是瞬间消失。
-    vec2 toPointer = uPointer - position.xy;
+    // 鼠标"吸附"：半径内已经可见的点朝鼠标位置轻微偏移 + 放大。
+    vec2 toPointer = uPointer - jittered;
     float pointerDist = length(toPointer);
     float pointerFalloff = 1.0 - smoothstep(0.0, uPointerRadius, pointerDist);
     float pointerGlow = pointerFalloff * uPointerActivity * step(0.003, mask);
     vPointerGlow = pointerGlow;
 
-    vec3 warpedPosition = position;
+    vec3 warpedPosition = vec3(jittered, 0.0);
     warpedPosition.xy += toPointer * pointerGlow * uPointerAttract;
 
     vec4 mvPosition = modelViewMatrix * vec4(warpedPosition, 1.0);
     gl_Position = projectionMatrix * mvPosition;
 
     float size = mix(uDotMin, uDotMax, mask);
+    size *= mix(1.0 - uSizeVariance, 1.0 + uSizeVariance * 0.4, hash12(aUv * 23.7));
     size *= 1.0 + pointerGlow * uPointerSizeBoost;
     gl_PointSize = size * uPixelRatio;
   }
@@ -135,6 +167,9 @@ interface NavigatorDotCoreProps {
   colorGlow: string;
   hoverColor: string;
   hoverStrength: number;
+  jitter: number;
+  edgeSpray: number;
+  sizeVariance: number;
   background: string;
   maxAlpha: number;
   speed: number;
@@ -159,6 +194,9 @@ function NavigatorDotCore({
   colorGlow,
   hoverColor,
   hoverStrength,
+  jitter,
+  edgeSpray,
+  sizeVariance,
   background,
   maxAlpha,
   speed,
@@ -232,6 +270,9 @@ function NavigatorDotCore({
         uColorGlow: { value: new THREE.Color(colorGlow) },
         uHoverColor: { value: new THREE.Color(hoverColor) },
         uHoverStrength: { value: hoverStrength },
+        uJitter: { value: jitter },
+        uEdgeSpray: { value: edgeSpray },
+        uSizeVariance: { value: sizeVariance },
         uMaxAlpha: { value: maxAlpha },
         uPointer: { value: new THREE.Vector2(0, 0) },
         uPointerRadius: { value: pointerRadius },
@@ -433,6 +474,9 @@ function NavigatorDotCore({
     (material.uniforms.uColorHigh.value as THREE.Color).set(colorHigh);
     (material.uniforms.uHoverColor.value as THREE.Color).set(hoverColor);
     material.uniforms.uHoverStrength.value = hoverStrength;
+    material.uniforms.uJitter.value = jitter;
+    material.uniforms.uEdgeSpray.value = edgeSpray;
+    material.uniforms.uSizeVariance.value = sizeVariance;
     material.uniforms.uMaxAlpha.value = maxAlpha;
     material.uniforms.uPointerRadius.value = pointerRadius;
     material.uniforms.uPointerAttract.value = pointerAttract;
@@ -447,6 +491,9 @@ function NavigatorDotCore({
     colorHigh,
     hoverColor,
     hoverStrength,
+    jitter,
+    edgeSpray,
+    sizeVariance,
     maxAlpha,
     pointerRadius,
     pointerAttract,
@@ -482,6 +529,11 @@ const NAVIGATOR_DEFAULTS = {
   /** 鼠标邻近染色的目标色 + 强度（0=不染色，1=光标处完全变成该色）。 */
   hoverColor: "#f59e0b",
   hoverStrength: 1,
+  /** 粒子散布：默认全 0 = 规整网格点阵（/ai 页手风琴维持原样）。
+   *  首页「频谱仪表盘」传非 0 值把人像打散成飘散的粒子云。 */
+  jitter: 0,
+  edgeSpray: 0,
+  sizeVariance: 0,
   background: "#fdfcfc",
   maxAlpha: 1,
   speed: 1,
@@ -508,6 +560,16 @@ export interface NavigatorDotMatrixProps {
   sizePercent?: number;
   /** 整体右移（%），默认 16。首页需要居中时传 0。 */
   rightShiftPercent?: number;
+  /** 网格密度倍率，默认 NAVIGATOR_DEFAULTS.density。首页调高做更密的粒子。 */
+  density?: number;
+  /** 点径（px），默认 NAVIGATOR_DEFAULTS.dotMaxSize。粒子多时调小。 */
+  dotMaxSize?: number;
+  /** 位置抖动，打散网格感（本地坐标单位，0=关闭）。 */
+  jitter?: number;
+  /** 人像轮廓处的点沿径向往外喷散的强度（0=关闭）。 */
+  edgeSpray?: number;
+  /** 每点大小的随机幅度 0~1（0=关闭）。 */
+  sizeVariance?: number;
 }
 
 export function NavigatorDotMatrix({
@@ -516,9 +578,16 @@ export function NavigatorDotMatrix({
   hoverColor: hoverColorProp,
   sizePercent: sizePercentProp,
   rightShiftPercent: rightShiftPercentProp,
+  density: densityProp,
+  dotMaxSize: dotMaxSizeProp,
+  jitter: jitterProp,
+  edgeSpray: edgeSprayProp,
+  sizeVariance: sizeVarianceProp,
 }: NavigatorDotMatrixProps) {
-  const [density, setDensity] = useState<number>(NAVIGATOR_DEFAULTS.density);
-  const [dotMaxSize, setDotMaxSize] = useState<number>(NAVIGATOR_DEFAULTS.dotMaxSize);
+  const [density, setDensity] = useState<number>(densityProp ?? NAVIGATOR_DEFAULTS.density);
+  const [dotMaxSize, setDotMaxSize] = useState<number>(
+    dotMaxSizeProp ?? NAVIGATOR_DEFAULTS.dotMaxSize,
+  );
   const [opacityThreshold, setOpacityThreshold] = useState<number>(
     NAVIGATOR_DEFAULTS.opacityThreshold,
   );
@@ -546,6 +615,13 @@ export function NavigatorDotMatrix({
   const [pointerSizeBoost, setPointerSizeBoost] = useState<number>(
     NAVIGATOR_DEFAULTS.pointerSizeBoost,
   );
+  const [jitter, setJitter] = useState<number>(jitterProp ?? NAVIGATOR_DEFAULTS.jitter);
+  const [edgeSpray, setEdgeSpray] = useState<number>(
+    edgeSprayProp ?? NAVIGATOR_DEFAULTS.edgeSpray,
+  );
+  const [sizeVariance, setSizeVariance] = useState<number>(
+    sizeVarianceProp ?? NAVIGATOR_DEFAULTS.sizeVariance,
+  );
 
   const effectiveCols = Math.max(4, Math.round(DEFAULT_GRID_COLS * density));
   const effectiveRows = Math.max(4, Math.round(DEFAULT_GRID_ROWS * density));
@@ -565,6 +641,9 @@ export function NavigatorDotMatrix({
     colorGlow: NAVIGATOR_DEFAULTS.colorGlow,
     hoverColor,
     hoverStrength: NAVIGATOR_DEFAULTS.hoverStrength,
+    jitter,
+    edgeSpray,
+    sizeVariance,
     background,
     maxAlpha: NAVIGATOR_DEFAULTS.maxAlpha,
     speed: NAVIGATOR_DEFAULTS.speed,
@@ -618,6 +697,12 @@ export function NavigatorDotMatrix({
           onPointerSizeBoostChange={setPointerSizeBoost}
           hoverColor={hoverColor}
           onHoverColorChange={setHoverColor}
+          jitter={jitter}
+          onJitterChange={setJitter}
+          edgeSpray={edgeSpray}
+          onEdgeSprayChange={setEdgeSpray}
+          sizeVariance={sizeVariance}
+          onSizeVarianceChange={setSizeVariance}
         />
       )}
     </div>
@@ -655,6 +740,12 @@ function NavigatorTuningPanel({
   onPointerSizeBoostChange,
   hoverColor,
   onHoverColorChange,
+  jitter,
+  onJitterChange,
+  edgeSpray,
+  onEdgeSprayChange,
+  sizeVariance,
+  onSizeVarianceChange,
 }: {
   density: number;
   onDensityChange: (value: number) => void;
@@ -686,6 +777,12 @@ function NavigatorTuningPanel({
   onPointerSizeBoostChange: (value: number) => void;
   hoverColor: string;
   onHoverColorChange: (value: string) => void;
+  jitter: number;
+  onJitterChange: (value: number) => void;
+  edgeSpray: number;
+  onEdgeSprayChange: (value: number) => void;
+  sizeVariance: number;
+  onSizeVarianceChange: (value: number) => void;
 }) {
   return (
     <TuningPanelShell title="领航员点阵调参（仅开发环境可见）">
@@ -847,6 +944,40 @@ function NavigatorTuningPanel({
             onHoverColorChange(v);
             persistDotTuningValue("navigator", "hoverColor", v);
           }}
+        />
+      </div>
+
+      <div className="flex flex-col gap-2 border-t border-black/[0.06] pt-3">
+        <p className="text-[11px] font-medium text-[#1c1917]">粒子散布</p>
+        <TuningSlider
+          label="抖动"
+          value={jitter}
+          min={0}
+          max={0.03}
+          step={0.001}
+          unit=""
+          onChange={onJitterChange}
+          onCommit={(v) => persistDotTuningValue("navigator", "jitter", v)}
+        />
+        <TuningSlider
+          label="边缘喷散"
+          value={edgeSpray}
+          min={0}
+          max={0.12}
+          step={0.002}
+          unit=""
+          onChange={onEdgeSprayChange}
+          onCommit={(v) => persistDotTuningValue("navigator", "edgeSpray", v)}
+        />
+        <TuningSlider
+          label="大小随机"
+          value={sizeVariance}
+          min={0}
+          max={1}
+          step={0.02}
+          unit=""
+          onChange={onSizeVarianceChange}
+          onCommit={(v) => persistDotTuningValue("navigator", "sizeVariance", v)}
         />
       </div>
     </TuningPanelShell>

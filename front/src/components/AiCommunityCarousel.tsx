@@ -161,7 +161,9 @@ export function AiCommunityCarousel() {
             <div className="absolute inset-[27%] rounded-full border border-white/[0.06]" />
 
             {/* 点阵人像（常驻，不随滚动切换）。放大铺满整个 target 区、
-                居中（rightShiftPercent=0）、内部再放大到 120%；hoverColor
+                居中，内部再放大到 120%。density/dotMaxSize/jitter/edgeSpray/
+                sizeVariance 把规整网格点阵打散成飘散的粒子云——人像轮廓处
+                的点沿径向喷出、每点大小随机，边缘碎成不连续颗粒。hoverColor
                 让光标附近的粒子染成琥珀色。 */}
             <div className="absolute inset-[-2%] overflow-hidden">
               <LazyMount>
@@ -171,6 +173,11 @@ export function AiCommunityCarousel() {
                   hoverColor="#f59e0b"
                   sizePercent={120}
                   rightShiftPercent={0}
+                  density={2.4}
+                  dotMaxSize={2.8}
+                  jitter={0.006}
+                  edgeSpray={0.05}
+                  sizeVariance={0.6}
                 />
               </LazyMount>
             </div>
