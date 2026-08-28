@@ -10,10 +10,9 @@ import { TeamSection } from "@/components/TeamSection";
 import { HeroThemeProvider } from "@/lib/heroTheme";
 
 // 首页改成整屏幻灯片：每个板块占满一屏，滚轮吸附切换（见 SlideDeck）。
-// 原来的通栏发丝分割线（SectionDivider）和贯穿全页的竖向网格线（GridRails）
-// 在分屏语境下不再适用——竖线改由每个屏自带的 rails 复刻，横向分割线
-// 整体去掉。整页统一纯黑底（#000），板块之间的对比靠深灰卡片面板（#101012）
-// 与浅色文案建立。
+// 原来的通栏发丝分割线（SectionDivider）、贯穿全页的竖向网格线（GridRails）
+// 以及每屏两侧的竖向 rails 全部去掉——整页统一纯黑底（#000），板块之间的
+// 对比靠深灰卡片面板（#101012）与浅色文案建立，不再需要网格线。
 export default function Home() {
   return (
     <HeroThemeProvider>
@@ -23,16 +22,16 @@ export default function Home() {
           <Slide className="bg-black">
             <HeroSection />
           </Slide>
-          <Slide rails className="bg-black">
+          <Slide className="bg-black">
             <AboutNovaSection />
           </Slide>
-          <Slide rails className="bg-black">
+          <Slide className="bg-black">
             <AiCommunityCarousel />
           </Slide>
-          <Slide rails className="bg-black">
+          <Slide className="bg-black">
             <FdeSection />
           </Slide>
-          <Slide rails className="bg-black">
+          <Slide className="bg-black">
             <TeamSection />
           </Slide>
           <Slide className="bg-black">

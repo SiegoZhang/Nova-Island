@@ -234,13 +234,9 @@ function DeckDots({
 export function Slide({
   children,
   className,
-  rails = false,
 }: {
   children: ReactNode;
   className?: string;
-  /** 在 1280px 内容列两侧画贯穿该屏的竖向发丝线（仅桌面），复刻原
-   *  GridRails 的分割竖线。深色的 Hero / Contact 屏不需要。 */
-  rails?: boolean;
 }) {
   const ref = useRef<HTMLElement>(null);
   const { register } = useSlideDeck();
@@ -271,17 +267,6 @@ export function Slide({
         className ?? ""
       }`}
     >
-      {rails && (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-30 hidden md:block"
-        >
-          <div className="relative mx-auto h-full w-full max-w-[1280px]">
-            <span className="absolute inset-y-0 left-0 w-px bg-white/10" />
-            <span className="absolute inset-y-0 right-0 w-px bg-white/10" />
-          </div>
-        </div>
-      )}
       {children}
     </section>
   );
