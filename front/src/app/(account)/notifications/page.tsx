@@ -172,7 +172,7 @@ function NotificationsContent() {
           />
         ) : (
           <>
-            <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
+            <ul className="divide-y divide-border overflow-hidden rounded-[24px] border border-border bg-card">
               {items.map((item) => (
                 <li key={item.id}>
                   <button
@@ -225,7 +225,7 @@ export default function NotificationsPage() {
       fallback={
         <div className="section-container w-full py-8 md:py-10">
           <Skeleton className="h-9 w-40" />
-          <Skeleton className="mt-6 h-40 w-full rounded-[20px]" />
+          <Skeleton className="mt-6 h-40 w-full rounded-[24px]" />
         </div>
       }
     >

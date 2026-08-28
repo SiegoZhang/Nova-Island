@@ -149,7 +149,7 @@ export function Navbar() {
           inert={!isMenuOpen}
           aria-hidden={!isMenuOpen}
           className={cn(
-            "absolute left-1/2 top-full w-[min(calc(100vw-2rem),360px)] max-h-[min(74dvh,calc(100dvh-var(--main-nav-safe-height)-12px))] -translate-x-1/2 origin-top overflow-y-auto overscroll-contain rounded-[22px] border border-white/[0.22] bg-black/[0.58] p-2 shadow-[0_24px_70px_rgba(21,23,25,0.28)] backdrop-blur-[18px] transition-[opacity,transform] duration-200",
+            "absolute left-1/2 top-full w-[min(calc(100vw-2rem),360px)] max-h-[min(74dvh,calc(100dvh-var(--main-nav-safe-height)-12px))] -translate-x-1/2 origin-top overflow-y-auto overscroll-contain rounded-[24px] border border-white/[0.22] bg-black/[0.58] p-2 shadow-[0_24px_70px_rgba(21,23,25,0.28)] backdrop-blur-[18px] transition-[opacity,transform] duration-200",
             isMenuOpen
               ? "translate-y-2 opacity-100"
               : "translate-y-0 opacity-0",
@@ -173,7 +173,7 @@ export function Navbar() {
                   onClick={closeMenu}
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "flex min-h-11 items-center justify-between rounded-[18px] px-4 text-[15px] font-medium outline-none transition-[background-color,color,transform] duration-200 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-ring",
+                    "flex min-h-11 items-center justify-between rounded-[24px] px-4 text-[15px] font-medium outline-none transition-[background-color,color,transform] duration-200 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-ring",
                     isActive
                       ? "bg-white/[0.24] text-white"
                       : "text-white/78 hover:bg-white/[0.10] hover:text-white",

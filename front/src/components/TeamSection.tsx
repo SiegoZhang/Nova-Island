@@ -10,10 +10,10 @@ import {
   TuningPanelShell,
 } from "@/components/dotSystemTuningControls";
 import { ImageDotMatrix } from "@/components/ImageDotMatrix";
-import { eBtnPrimary, eEyebrow, ePageContainer } from "@/lib/eleven";
+import { eBtnPrimary, eEyebrowDark, ePageContainer } from "@/lib/eleven";
 
 // "工程师文化"卡片背景纹理：assets/computer.png（透明背景抠图）用
-// ImageDotMatrix 实时采样成点阵，颜色统一 CDD4DA。密度/点径/位置/大小
+// ImageDotMatrix 实时采样成点阵，颜色统一 d0d0d0（跟 AI社群 点阵一致）。密度/点径/位置/大小
 // 不写死，配一个仅开发环境可见的调参面板，松手后通过 persistDotTuningValue
 // 写回下面这个 TEAM_ENGINEER_DOT_DEFAULTS，不需要手动把面板数字抄回源码。
 const TEAM_ENGINEER_DOT_DEFAULTS = {
@@ -29,7 +29,7 @@ const TEAM_ENGINEER_DOT_DEFAULTS = {
 } as const;
 
 // "扎根一线"卡片背景纹理：assets/compass.png（指南针 + 望远镜，透明背景
-// 抠图，已裁掉四周多余的透明留白）同一套处理，颜色同样用 CDD4DA。
+// 抠图，已裁掉四周多余的透明留白）同一套处理，颜色同样用 d0d0d0。
 const TEAM_COMPASS_DOT_DEFAULTS = {
   src: "/images/team-compass-source.png",
   cellPx: 8,
@@ -41,7 +41,7 @@ const TEAM_COMPASS_DOT_DEFAULTS = {
 } as const;
 
 // "长期陪跑"卡片背景纹理：assets/sand clock.png（透明背景抠图，已裁掉
-// 四周多余的透明留白）同一套处理，颜色同样用 CDD4DA，跟工程师卡片视觉
+// 四周多余的透明留白）同一套处理，颜色同样用 d0d0d0，跟工程师卡片视觉
 // 语言保持一致。
 const TEAM_CLOCK_DOT_DEFAULTS = {
   src: "/images/team-clock-source.png",
@@ -54,7 +54,7 @@ const TEAM_CLOCK_DOT_DEFAULTS = {
 } as const;
 
 // "持续学习"卡片背景纹理：assets/book1.png（摊开的书，透明背景抠图，已
-// 裁掉四周多余的透明留白）同一套处理，颜色同样用 CDD4DA。素材跟之前的
+// 裁掉四周多余的透明留白）同一套处理，颜色同样用 d0d0d0。素材跟之前的
 // book.png 构图差很多（更宽更扁），位置/大小先还原成安全默认值，实际
 // 效果用调参面板重新调。
 const TEAM_BOOK_DOT_DEFAULTS = {
@@ -116,7 +116,7 @@ function TeamCardDotTexture({ componentId, panelTitle, defaults }: TeamCardDotTe
             cellPx={cellPx}
             minRadiusPx={defaults.minRadiusPx}
             maxRadiusPx={maxRadiusPx}
-            color="#CDD4DA"
+            color="#4a4a4a"
             mouseInteraction
           />
         </div>
@@ -307,14 +307,14 @@ export function TeamSection() {
   };
 
   return (
-    <section id="team" className="bg-[#F8F9FA] py-24">
+    <section id="team" className="w-full bg-black">
       <div className={`${ePageContainer} grid gap-14 md:grid-cols-[40fr_60fr] md:items-center md:gap-16`}>
-        <div className="reveal">
-          <p className={eEyebrow}>我们的团队</p>
-          <h2 className="mt-4 text-[32px] leading-[1.1] font-medium tracking-[-0.02em] text-[#1c1917] md:text-[40px]">
+        <div data-parallax className="reveal">
+          <p className={eEyebrowDark}>我们的团队</p>
+          <h2 className="mt-4 text-[32px] leading-[1.1] font-medium tracking-[-0.02em] text-[#f5f5f5] md:text-[40px]">
             一支相信「亲自动手」的工程团队
           </h2>
-          <p className="mt-4 max-w-[440px] text-[16px] leading-[1.65] text-[#57534e]">
+          <p className="mt-4 max-w-[440px] text-[16px] leading-[1.65] text-[#a1a1aa]">
             我们由长期扎根 AI
             工程化一线的工程师与研究者组成，团队规模不大，但每个人都直接对接客户场景与交付结果。
           </p>
@@ -329,7 +329,7 @@ export function TeamSection() {
           aria-label="团队价值卡片"
           // 卡片仍占右侧 60fr 一列，位置不变；桌面高度改由 16:9 长宽比决定，
           // 跟 AI社群 轮播卡在满宽下的比例保持一致。移动端沿用固定高度。
-          className="reveal reveal-delay-1 relative h-[320px] overflow-hidden rounded-2xl bg-[#eceded] md:h-auto md:aspect-[16/9]"
+          className="reveal reveal-delay-1 relative h-[320px] overflow-hidden rounded-2xl border border-white/10 bg-[#101012] md:h-auto md:aspect-[16/9]"
         >
           {values.map(({ title, description }, index) => {
             const isCurrent = index === current;
@@ -349,7 +349,7 @@ export function TeamSection() {
               <div
                 key={title}
                 aria-hidden={!isCurrent}
-                className="absolute inset-0 overflow-hidden bg-[#eceded] p-8 will-change-transform md:p-12"
+                className="absolute inset-0 overflow-hidden bg-[#101012] p-8 will-change-transform md:p-12"
                 style={{
                   animation: isSliding
                     ? `${animationName} ${SLIDE_DURATION_MS}ms cubic-bezier(0.65,0,0.35,1) both`
@@ -389,8 +389,8 @@ export function TeamSection() {
                 )}
                 <div className="relative flex h-full flex-col justify-center gap-4">
                   <div>
-                    <p className="text-[18px] font-medium text-[#111222] md:text-[20px]">{title}</p>
-                    <p className="mt-2 max-w-[420px] text-[15px] leading-[1.7] text-[#666666] md:text-[16px]">
+                    <p className="text-[18px] font-medium text-white md:text-[20px]">{title}</p>
+                    <p className="mt-2 max-w-[420px] text-[15px] leading-[1.7] text-white/65 md:text-[16px]">
                       {description}
                     </p>
                   </div>
@@ -403,7 +403,7 @@ export function TeamSection() {
             currentIndex={current}
             total={values.length}
             onSelect={goTo}
-            tone="light"
+            tone="dark"
             className="absolute right-8 bottom-5 z-30 md:right-12"
           />
         </div>

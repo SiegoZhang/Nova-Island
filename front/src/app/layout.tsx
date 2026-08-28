@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { MustChangePasswordGate } from "@/components/auth/MustChangePasswordGate";
+import { geistSans, notoSansSC } from "@/lib/fonts";
 
 export const metadata: Metadata = {
   title: "新岛 AI",
@@ -24,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" className={`${geistSans.variable} ${notoSansSC.variable}`}>
       <body>
         <AuthProvider>
           <MustChangePasswordGate>{children}</MustChangePasswordGate>

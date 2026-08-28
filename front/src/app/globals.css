@@ -1,45 +1,5 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: "Inter";
-  src: url("/assets/inter-latin-300-normal-BVlfKGgI.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 300;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Inter";
-  src: url("/assets/inter-latin-400-normal-C38fXH4l.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Inter";
-  src: url("/assets/inter-latin-500-normal-Cerq10X2.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Inter";
-  src: url("/assets/inter-latin-600-normal-LgqL8muc.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Inter";
-  src: url("/assets/inter-latin-700-normal-Yt3aPRUw.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -65,8 +25,16 @@
   --color-nova-muted: var(--nova-text-muted);
   --color-nova-accent: var(--nova-accent);
   --color-nova-placeholder: var(--nova-placeholder);
-  --font-sans: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  --radius-lg: var(--radius);
+  --font-sans: var(--font-geist-sans), var(--font-noto-sans-sc), "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  /* 全站统一圆角 24px：rounded-sm/md/lg/xl/2xl/3xl 全部落到同一个值，
+     只有 rounded-full（药丸按钮、头像、圆点徽标）保持整圆。 */
+  --radius: 24px;
+  --radius-sm: 24px;
+  --radius-md: 24px;
+  --radius-lg: 24px;
+  --radius-xl: 24px;
+  --radius-2xl: 24px;
+  --radius-3xl: 24px;
 }
 
 :root {
@@ -88,7 +56,6 @@
   --destructive-foreground: #ffffff;
   --border: rgb(21 23 25 / 8%);
   --ring: #7faebb;
-  --radius: 1.125rem;
   --nova-bg: #f8f9fa;
   --nova-bg-2: #eef1ef;
   --nova-bg-ocean: #e7f0f2;
@@ -123,7 +90,7 @@ body {
   overflow-x: hidden;
   background: var(--nova-bg);
   color: var(--nova-text);
-  font-family: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-family: var(--font-geist-sans), var(--font-noto-sans-sc), "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -327,6 +294,42 @@ button {
   }
 }
 
+/* ── 首页幻灯片（SlideDeck）─────────────────────────────────────────
+   区块内已有的 .reveal / .reveal-atom 入场动画改为「滚到该屏才播放」：
+   默认暂停在起始帧（隐藏），父级 [data-slide] 拿到 [data-active] 时恢复
+   播放。data-parallax 元素随切屏进度 --rel（SlideDeck 每帧写在
+   [data-slide] 上，-1…0…1）做轻微纵向视差。data-reveal 是给新加的元素
+   用的、不依赖 keyframe 的进/出场。 */
+[data-slide] .reveal,
+[data-slide] .reveal-atom {
+  animation-play-state: paused;
+}
+[data-slide][data-active] .reveal,
+[data-slide][data-active] .reveal-atom {
+  animation-play-state: running;
+}
+
+[data-slide] [data-parallax] {
+  transform: translate3d(0, calc(var(--rel, 0) * 44px), 0);
+  transition: transform 120ms linear;
+}
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(26px);
+  filter: blur(6px);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(var(--i, 0) * 90ms);
+}
+[data-slide][data-active] [data-reveal] {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -339,5 +342,21 @@ button {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+
+  [data-slide-deck] {
+    scroll-snap-type: none !important;
+  }
+  [data-slide] [data-parallax] {
+    transform: none !important;
+  }
+  [data-slide] .reveal,
+  [data-slide] .reveal-atom {
+    animation-play-state: running !important;
+  }
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
   }
 }

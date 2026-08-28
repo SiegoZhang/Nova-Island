@@ -66,7 +66,7 @@ function BookmarksContent() {
       <div className="section-container w-full py-8 md:py-10">
         <Skeleton className="h-9 w-40" />
         <div className="mt-8">
-          <Skeleton className="h-48 w-full rounded-[20px]" />
+          <Skeleton className="h-48 w-full rounded-[24px]" />
         </div>
       </div>
     );
@@ -138,7 +138,7 @@ export default function BookmarksPage() {
         <div className="section-container w-full py-8 md:py-10">
           <Skeleton className="h-9 w-40" />
           <div className="mt-8">
-            <Skeleton className="h-48 w-full rounded-[20px]" />
+            <Skeleton className="h-48 w-full rounded-[24px]" />
           </div>
         </div>
       }

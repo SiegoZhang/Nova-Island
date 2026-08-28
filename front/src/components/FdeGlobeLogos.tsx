@@ -28,8 +28,8 @@ const GLOBE_DEFAULTS = {
   // 网格密度倍率（相对 BASE_GRID 112×112），越大点越密。
   density: 1.15,
   dotMaxSize: 3.4,
-  // 方形点占比，0=纯圆点，1=纯方点，0.5=圆/方各半（跟 Hero 一致）。
-  squareDotRatio: 0.5,
+  // 方形点占比，0=纯圆点，1=纯方点，0.5=圆/方各半。地球点阵统一用圆点。
+  squareDotRatio: 0,
   opacityThreshold: 0.12,
   softness: 0.02,
   contrast: 2.5,
@@ -41,10 +41,10 @@ const GLOBE_DEFAULTS = {
   // 已渲染好的点阵画布，不改网格密度/点径，超出容器的部分被卡片
   // overflow-hidden 裁掉。只缩地球，不缩上面的 logo 网格。
   sizePercent: 129,
-  // 亮度→颜色 4 段色阶：暗部贴卡片底色 #1F1F1F 融进背景，只有最亮端是
+  // 亮度→颜色 4 段色阶：暗部贴卡片底色 #101012 融进背景，只有最亮端是
   // 品牌蓝高光。
-  colorDark: "#2a2b2e",
-  colorMid1: "#333a4a",
+  colorDark: "#1b1b1e",
+  colorMid1: "#2b3350",
   colorMid2: "#1e34a0",
   colorHigh: "#1a38ce",
   // logo 一起切换的节奏：每张卡停留时长 + 单次淡入淡出时长（ms）。
@@ -166,7 +166,7 @@ export function FdeGlobeLogos({
         src="/videos/globe.mp4"
         className="size-full"
         colorStops={colorStops}
-        background="#1F1F1F"
+        background="#101012"
         transparentBackground
         gridCols={grid}
         gridRows={grid}

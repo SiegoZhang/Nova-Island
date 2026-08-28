@@ -7,7 +7,7 @@ import { CardBreadcrumb } from "@/components/CardBreadcrumb";
 import { FdeBrandGrid } from "@/components/FdeBrandGrid";
 import { FdeGlobeLogos } from "@/components/FdeGlobeLogos";
 import { ArrowRightIcon } from "@/components/icons";
-import { eEyebrow, eMono, ePageContainer } from "@/lib/eleven";
+import { eEyebrowDark, eMono, ePageContainer } from "@/lib/eleven";
 
 // FDE 卡片：右侧点阵地球「保持不动」，作为整张卡片固定的背景元素；切换分页
 // 时只有左侧文案 + CTA、以及浮在地球上方的那层卡片跟着换。三张卡都叠在同一
@@ -129,14 +129,14 @@ export function FdeSection() {
   }, []);
 
   return (
-    <section id="fde" className="bg-[#F8F9FA] py-24">
+    <section id="fde" className="w-full bg-black">
       <div className={ePageContainer}>
-        <div className="reveal mb-10 text-center">
-          <p className={eEyebrow}>FDE业务</p>
-          <h2 className="mt-4 text-[32px] leading-[1.1] font-medium tracking-[-0.02em] text-[#1c1917] md:text-[40px]">
+        <div data-parallax className="reveal mb-10 text-center">
+          <p className={eEyebrowDark}>FDE业务</p>
+          <h2 className="mt-4 text-[32px] leading-[1.1] font-medium tracking-[-0.02em] text-[#f5f5f5] md:text-[40px]">
             从认知到落地的工程化路径
           </h2>
-          <p className="mx-auto mt-3 max-w-[540px] text-[16px] leading-[1.65] text-[#57534e]">
+          <p className="mx-auto mt-3 max-w-[540px] text-[16px] leading-[1.65] text-[#a1a1aa]">
             Forward Deployed Engineer — 区别于标准化方案，我们深入客户的真实业务场景，以工程化能力驱动
             AI 的规模化落地与持续见效。
           </p>
@@ -147,7 +147,7 @@ export function FdeSection() {
           // 卡片宽度不变（贴 ePageContainer，距左右网格竖线 36px），桌面高度
           // 改由 16:9 长宽比决定，跟 AI社群 轮播卡在满宽下的比例保持一致；
           // 移动端卡片转竖向，沿用固定高度。
-          className="reveal relative h-[560px] overflow-hidden rounded-2xl border border-[#efefef] bg-[#1F1F1F] md:h-auto md:aspect-[16/9]"
+          className="reveal relative h-[560px] overflow-hidden rounded-2xl border border-white/10 bg-[#101012] md:aspect-auto md:h-[min(58vh,620px)]"
         >
           {/* 固定不动的点阵地球——整张卡片共用一个实例，切换分页时它不参与
               任何过渡。占右半，桌面才显示。 */}
