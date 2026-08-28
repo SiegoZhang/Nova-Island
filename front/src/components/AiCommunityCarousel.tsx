@@ -37,10 +37,10 @@ const AI_COMMUNITY_NAVIGATOR_DEFAULTS = {
   rightShiftPercent: 0,
   downShiftPercent: 0,
   density: 2,
-  dotMaxSize: 3.2,
-  jitter: 0.005,
-  edgeSpray: 0.035,
-  sizeVariance: 0.5,
+  dotMaxSize: 2.5,
+  jitter: 0,
+  edgeSpray: 0,
+  sizeVariance: 0.46,
   pointerRadius: 0.16,
   pointerAttract: 0.22,
   pointerSizeBoost: 0,
@@ -267,10 +267,6 @@ function CommunityRadar({ dims }: { dims: AiCommunityDimensions }) {
           style={{ transform: `rotate(45deg) scale(${s})` }}
         />
       ))}
-      {/* 十字线 */}
-      <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-white/[0.09]" />
-      <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-white/[0.09]" />
-
       {/* 白色半透明数据区 */}
       <div
         className="absolute inset-0 bg-white/[0.1] transition-[clip-path] duration-500 ease-out"
