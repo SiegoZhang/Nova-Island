@@ -33,19 +33,19 @@ const WHEEL_GESTURE_IDLE_MS = 200;
 // 松手后，会由 /api/dev/dot-tuning 直接写回这个常量块——不需要手动抄数值。
 // 这些是首页实例专用，跟 /ai 手风琴用的 NAVIGATOR_DEFAULTS 互不影响。
 const AI_COMMUNITY_NAVIGATOR_DEFAULTS = {
-  sizePercent: 120,
+  sizePercent: 118,
   rightShiftPercent: 0,
   downShiftPercent: 0,
   density: 2,
-  dotMaxSize: 2.3,
+  dotMaxSize: 2.7,
   jitter: 0,
   edgeSpray: 0,
   sizeVariance: 0.46,
-  pointerRadius: 0.04,
+  pointerRadius: 0.25,
   // 鼠标划过时把光标周围一圈粒子往外挤一点（环形推力 + 每点随机偏转），
   // 不是清空——光标正中心几乎不推，粒子只是变稀。冲散和吸附反向，吸附归 0。
-  pointerAttract: 0,
-  pointerScatter: 0.025,
+  pointerAttract: 0.03,
+  pointerScatter: 0.015,
   pointerSizeBoost: 0,
 } as const;
 
@@ -163,12 +163,13 @@ export function AiCommunityCarousel() {
             {/* 内同心圆 */}
             <div className="absolute inset-[27%] rounded-full border border-white/[0.06]" />
 
-            {/* 点阵人像（常驻，不随滚动切换）。放大铺满整个 target 区、
-                居中，内部再放大到 120%。density/dotMaxSize/jitter/edgeSpray/
+            {/* 点阵人像（常驻，不随滚动切换）。视频渲染区用负 inset 撑到比
+                外圈装饰框还大一圈，人形整体更大、可以溢出同心圆；内部再靠
+                sizePercent 微调。density/dotMaxSize/jitter/edgeSpray/
                 sizeVariance 把规整网格点阵打散成飘散的粒子云——人像轮廓处
                 的点沿径向喷出、每点大小随机，边缘碎成不连续颗粒。鼠标划过
                 时光标附近的粒子被冲散拨开（pointerScatter），不染色、不放大。 */}
-            <div className="absolute inset-[-2%] overflow-hidden">
+            <div className="absolute inset-[-10%] overflow-hidden">
               <LazyMount>
                 <NavigatorDotMatrix
                   className="fade-in"
