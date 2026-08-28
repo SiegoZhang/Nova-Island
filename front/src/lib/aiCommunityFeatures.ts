@@ -38,7 +38,7 @@ export const aiCommunityFeatures: AiCommunityFeature[] = [
   {
     label: "每周风向",
     description:
-      "每周精选 AI 行业最值得关注的动态与趋势，从模型发布、产品迭代到资本与政策变化，替你过滤掉重复的噪音与炒作，只留下真正影响判断的信息。花十分钟读完，就能跟上这一周的行业变化。",
+      "每周精选 AI 行业值得关注的动态与趋势，从模型发布、产品迭代到资本与政策变化，替你过滤掉重复的噪音与炒作，只留下真正影响判断的信息。",
     dimensions: { exchange: 0.34, gain: 0.68, growth: 0.52, frontier: 0.96 },
     // 静态旗帜素材（见 assets/旗帜.png），按 Figma（node 177:5474）还原：
     // 不做点阵化，就是同一张图叠两层普通图片——下层模糊、上层清晰，两层
