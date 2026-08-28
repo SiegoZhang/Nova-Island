@@ -47,6 +47,8 @@ const VERTEX_SHADER = /* glsl */ `
 
   varying float vLuminance;
   varying float vMask;
+  // 鼠标邻近强度（0~1，越靠近光标越大），传给片元着色器做染色。
+  varying float vPointerGlow;
 
   void main() {
     vec3 texel = texture2D(uTexture, aUv).rgb;
@@ -70,6 +72,7 @@ const VERTEX_SHADER = /* glsl */ `
     float pointerDist = length(toPointer);
     float pointerFalloff = 1.0 - smoothstep(0.0, uPointerRadius, pointerDist);
     float pointerGlow = pointerFalloff * uPointerActivity * step(0.003, mask);
+    vPointerGlow = pointerGlow;
 
     vec3 warpedPosition = position;
     warpedPosition.xy += toPointer * pointerGlow * uPointerAttract;
@@ -89,10 +92,13 @@ const FRAGMENT_SHADER = /* glsl */ `
   uniform vec3 uColorLow;
   uniform vec3 uColorHigh;
   uniform vec3 uColorGlow;
+  uniform vec3 uHoverColor;
+  uniform float uHoverStrength;
   uniform float uMaxAlpha;
 
   varying float vLuminance;
   varying float vMask;
+  varying float vPointerGlow;
 
   void main() {
     if (vMask < 0.003) discard;
@@ -107,6 +113,8 @@ const FRAGMENT_SHADER = /* glsl */ `
     vec3 color = mix(uColorLow, uColorGlow, lum);
     // 少量高光：仅亮度最高的一小段染成高光色 uColorHigh。
     color = mix(color, uColorHigh, smoothstep(0.72, 0.95, lum));
+    // 鼠标邻近染色：离光标越近的点越往 uHoverColor 偏。
+    color = mix(color, uHoverColor, clamp(vPointerGlow * uHoverStrength, 0.0, 1.0));
     float alpha = circle * vMask * uMaxAlpha;
     gl_FragColor = vec4(color, alpha);
   }
@@ -125,6 +133,8 @@ interface NavigatorDotCoreProps {
   colorLow: string;
   colorHigh: string;
   colorGlow: string;
+  hoverColor: string;
+  hoverStrength: number;
   background: string;
   maxAlpha: number;
   speed: number;
@@ -147,6 +157,8 @@ function NavigatorDotCore({
   colorLow,
   colorHigh,
   colorGlow,
+  hoverColor,
+  hoverStrength,
   background,
   maxAlpha,
   speed,
@@ -218,6 +230,8 @@ function NavigatorDotCore({
         uColorLow: { value: new THREE.Color(colorLow) },
         uColorHigh: { value: new THREE.Color(colorHigh) },
         uColorGlow: { value: new THREE.Color(colorGlow) },
+        uHoverColor: { value: new THREE.Color(hoverColor) },
+        uHoverStrength: { value: hoverStrength },
         uMaxAlpha: { value: maxAlpha },
         uPointer: { value: new THREE.Vector2(0, 0) },
         uPointerRadius: { value: pointerRadius },
@@ -417,6 +431,8 @@ function NavigatorDotCore({
     material.uniforms.uContrast.value = contrast;
     (material.uniforms.uColorLow.value as THREE.Color).set(colorLow);
     (material.uniforms.uColorHigh.value as THREE.Color).set(colorHigh);
+    (material.uniforms.uHoverColor.value as THREE.Color).set(hoverColor);
+    material.uniforms.uHoverStrength.value = hoverStrength;
     material.uniforms.uMaxAlpha.value = maxAlpha;
     material.uniforms.uPointerRadius.value = pointerRadius;
     material.uniforms.uPointerAttract.value = pointerAttract;
@@ -429,6 +445,8 @@ function NavigatorDotCore({
     contrast,
     colorLow,
     colorHigh,
+    hoverColor,
+    hoverStrength,
     maxAlpha,
     pointerRadius,
     pointerAttract,
@@ -461,6 +479,9 @@ const NAVIGATOR_DEFAULTS = {
   colorLow: "#d0d0d0",
   colorHigh: "#ffffff",
   colorGlow: "#e8e8e8",
+  /** 鼠标邻近染色的目标色 + 强度（0=不染色，1=光标处完全变成该色）。 */
+  hoverColor: "#f59e0b",
+  hoverStrength: 1,
   background: "#fdfcfc",
   maxAlpha: 1,
   speed: 1,
@@ -481,11 +502,20 @@ const NAVIGATOR_DEFAULTS = {
 export interface NavigatorDotMatrixProps {
   className?: string;
   background?: string;
+  /** 鼠标邻近染色目标色，默认取 NAVIGATOR_DEFAULTS.hoverColor（琥珀）。 */
+  hoverColor?: string;
+  /** 整体缩放（%），默认 100。首页「频谱仪表盘」传更大的值把人像放大。 */
+  sizePercent?: number;
+  /** 整体右移（%），默认 16。首页需要居中时传 0。 */
+  rightShiftPercent?: number;
 }
 
 export function NavigatorDotMatrix({
   className,
   background = NAVIGATOR_DEFAULTS.background,
+  hoverColor: hoverColorProp,
+  sizePercent: sizePercentProp,
+  rightShiftPercent: rightShiftPercentProp,
 }: NavigatorDotMatrixProps) {
   const [density, setDensity] = useState<number>(NAVIGATOR_DEFAULTS.density);
   const [dotMaxSize, setDotMaxSize] = useState<number>(NAVIGATOR_DEFAULTS.dotMaxSize);
@@ -496,14 +526,19 @@ export function NavigatorDotMatrix({
   const [contrast, setContrast] = useState<number>(NAVIGATOR_DEFAULTS.contrast);
   const [colorLow, setColorLow] = useState<string>(NAVIGATOR_DEFAULTS.colorLow);
   const [colorHigh, setColorHigh] = useState<string>(NAVIGATOR_DEFAULTS.colorHigh);
+  const [hoverColor, setHoverColor] = useState<string>(
+    hoverColorProp ?? NAVIGATOR_DEFAULTS.hoverColor,
+  );
   const [blurPx, setBlurPx] = useState<number>(NAVIGATOR_DEFAULTS.blurPx);
   const [rightShiftPercent, setRightShiftPercent] = useState<number>(
-    NAVIGATOR_DEFAULTS.rightShiftPercent,
+    rightShiftPercentProp ?? NAVIGATOR_DEFAULTS.rightShiftPercent,
   );
   const [downShiftPercent, setDownShiftPercent] = useState<number>(
     NAVIGATOR_DEFAULTS.downShiftPercent,
   );
-  const [sizePercent, setSizePercent] = useState<number>(NAVIGATOR_DEFAULTS.sizePercent);
+  const [sizePercent, setSizePercent] = useState<number>(
+    sizePercentProp ?? NAVIGATOR_DEFAULTS.sizePercent,
+  );
   const [pointerRadius, setPointerRadius] = useState<number>(NAVIGATOR_DEFAULTS.pointerRadius);
   const [pointerAttract, setPointerAttract] = useState<number>(
     NAVIGATOR_DEFAULTS.pointerAttract,
@@ -528,6 +563,8 @@ export function NavigatorDotMatrix({
     colorLow,
     colorHigh,
     colorGlow: NAVIGATOR_DEFAULTS.colorGlow,
+    hoverColor,
+    hoverStrength: NAVIGATOR_DEFAULTS.hoverStrength,
     background,
     maxAlpha: NAVIGATOR_DEFAULTS.maxAlpha,
     speed: NAVIGATOR_DEFAULTS.speed,
@@ -579,6 +616,8 @@ export function NavigatorDotMatrix({
           onPointerAttractChange={setPointerAttract}
           pointerSizeBoost={pointerSizeBoost}
           onPointerSizeBoostChange={setPointerSizeBoost}
+          hoverColor={hoverColor}
+          onHoverColorChange={setHoverColor}
         />
       )}
     </div>
@@ -614,6 +653,8 @@ function NavigatorTuningPanel({
   onPointerAttractChange,
   pointerSizeBoost,
   onPointerSizeBoostChange,
+  hoverColor,
+  onHoverColorChange,
 }: {
   density: number;
   onDensityChange: (value: number) => void;
@@ -643,6 +684,8 @@ function NavigatorTuningPanel({
   onPointerAttractChange: (value: number) => void;
   pointerSizeBoost: number;
   onPointerSizeBoostChange: (value: number) => void;
+  hoverColor: string;
+  onHoverColorChange: (value: string) => void;
 }) {
   return (
     <TuningPanelShell title="领航员点阵调参（仅开发环境可见）">
@@ -796,6 +839,14 @@ function NavigatorTuningPanel({
           unit="×"
           onChange={onPointerSizeBoostChange}
           onCommit={(v) => persistDotTuningValue("navigator", "pointerSizeBoost", v)}
+        />
+        <CommitColorPicker
+          label="染色"
+          value={hoverColor}
+          onCommit={(v) => {
+            onHoverColorChange(v);
+            persistDotTuningValue("navigator", "hoverColor", v);
+          }}
         />
       </div>
     </TuningPanelShell>

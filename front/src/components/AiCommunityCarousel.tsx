@@ -125,12 +125,23 @@ export function AiCommunityCarousel() {
           {/* ── 中间 target-coordinate-area ── */}
           <div
             data-parallax
-            className="reveal group relative mx-auto aspect-square w-[min(78vw,440px)] md:w-[min(46vh,480px)]"
+            className="reveal group relative mx-auto aspect-square w-[min(88vw,520px)] md:w-[min(60vh,600px)]"
           >
             {/* 外圈大圆 + 十字线 */}
             <div className="absolute inset-[6%] rounded-full border border-white/10" />
             <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-white/10" />
             <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-white/10" />
+            {/* 左右边缘的小十字标记（Figma 参考图里那两个 +） */}
+            <span
+              className={`${eMono} absolute top-1/2 -left-[4%] -translate-y-1/2 text-[12px] text-white/25`}
+            >
+              +
+            </span>
+            <span
+              className={`${eMono} absolute top-1/2 -right-[4%] -translate-y-1/2 text-[12px] text-white/25`}
+            >
+              +
+            </span>
             {/* 上 / 下刻度条 */}
             <div className="absolute left-1/2 top-[3%] h-6 w-1.5 -translate-x-1/2 rounded-full bg-[#f3f4f6]" />
             <div className="absolute bottom-[3%] left-1/2 h-6 w-1.5 -translate-x-1/2 rounded-full bg-[#f3f4f6]" />
@@ -149,16 +160,23 @@ export function AiCommunityCarousel() {
             {/* 内同心圆 */}
             <div className="absolute inset-[27%] rounded-full border border-white/[0.06]" />
 
-            {/* 点阵人像（常驻，不随滚动切换）—— NavigatorDotMatrix 内部默认向右
-                偏 16%，外层反向补偿一点让人像大致居中，具体量后续可调。 */}
-            <div className="absolute inset-[16%] -translate-x-[6%] overflow-hidden">
+            {/* 点阵人像（常驻，不随滚动切换）。放大铺满整个 target 区、
+                居中（rightShiftPercent=0）、内部再放大到 120%；hoverColor
+                让光标附近的粒子染成琥珀色。 */}
+            <div className="absolute inset-[-2%] overflow-hidden">
               <LazyMount>
-                <NavigatorDotMatrix className="fade-in" background="#000000" />
+                <NavigatorDotMatrix
+                  className="fade-in"
+                  background="#000000"
+                  hoverColor="#f59e0b"
+                  sizePercent={120}
+                  rightShiftPercent={0}
+                />
               </LazyMount>
             </div>
 
             {/* 悬浮时按距离错峰淡入的彩色像素层 */}
-            <div className="pointer-events-none absolute inset-[25%] grid grid-cols-12 grid-rows-12">
+            <div className="pointer-events-none absolute inset-[12%] grid grid-cols-12 grid-rows-12">
               {HOVER_PIXELS.map((px, i) =>
                 px.color ? (
                   <span
