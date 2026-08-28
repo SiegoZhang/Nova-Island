@@ -124,9 +124,8 @@ export function AiCommunityCarousel() {
             >
               +
             </span>
-            {/* 上 / 下刻度条 */}
+            {/* 顶部刻度条（底部那根在 1.0 标签正上方，已按需求删掉） */}
             <div className="absolute left-1/2 top-[3%] h-6 w-1.5 -translate-x-1/2 rounded-full bg-[#f3f4f6]" />
-            <div className="absolute bottom-[3%] left-1/2 h-6 w-1.5 -translate-x-1/2 rounded-full bg-[#f3f4f6]" />
 
             {/* 实线方框 A —— 悬浮时向左下错位并轻微逆时针旋转 */}
             <div className="absolute inset-[18%] border border-[#9ca3af]/55 transition-transform duration-500 ease-out group-hover:-translate-x-[6%] group-hover:translate-y-[5%] group-hover:-rotate-2" />
