@@ -1,57 +1,16 @@
-import { AboutNovaSection } from "@/components/AboutNovaSection";
-import { AiCommunityCarousel } from "@/components/AiCommunityCarousel";
-import { ContactCtaSection } from "@/components/ContactCtaSection";
-import { FdeSection } from "@/components/FdeSection";
-import { Footer } from "@/components/Footer";
-import { GridOverlay } from "@/components/GridOverlay";
-import { HeroSection } from "@/components/HeroSection";
-import { Navbar } from "@/components/Navbar";
-import { Slide, SlideDeck } from "@/components/SlideDeck";
-import { TeamSection } from "@/components/TeamSection";
-import { HeroThemeProvider } from "@/lib/heroTheme";
+import { HomeVariantHost } from "@/components/home-variants/HomeVariantHost";
 
-// 首页改成整屏幻灯片：每个板块占满一屏，滚轮吸附切换（见 SlideDeck）。
-// 原来的通栏发丝分割线（SectionDivider）、贯穿全页的竖向网格线（GridRails）
-// 以及每屏两侧的竖向 rails 全部去掉——整页统一纯黑底（#000），板块之间的
-// 对比靠深灰卡片面板（#101012）与浅色文案建立，不再需要网格线。
-export default function Home() {
-  return (
-    <HeroThemeProvider>
-      <div className="h-[100svh] overflow-hidden bg-black">
-        <Navbar />
-        {/* morphBoundaryIndex={2}：AI社群（第 3 屏）→ FDE（第 4 屏）之间启用
-            粒子形变过渡——人形粒子聚拢再炸开成点阵地球，见 AiFdeParticleMorph。 */}
-        <SlideDeck morphBoundaryIndex={2}>
-          <Slide className="bg-black">
-            <HeroSection />
-          </Slide>
-          <Slide className="bg-black">
-            <GridOverlay />
-            <AboutNovaSection />
-          </Slide>
-          <Slide className="bg-black">
-            <GridOverlay />
-            <AiCommunityCarousel />
-          </Slide>
-          <Slide className="bg-black">
-            <GridOverlay />
-            <FdeSection />
-          </Slide>
-          <Slide className="bg-black">
-            <GridOverlay />
-            <TeamSection />
-          </Slide>
-          <Slide className="bg-black">
-            <GridOverlay />
-            <div className="relative z-10 flex min-h-full w-full flex-col">
-              <div className="flex flex-1 items-center">
-                <ContactCtaSection />
-              </div>
-              <Footer />
-            </div>
-          </Slide>
-        </SlideDeck>
-      </div>
-    </HeroThemeProvider>
-  );
+// 首页现在是「多方案」的：给老板出方案时会有几套完全不同的设计，用右下角
+// 切换器切换，彼此独立、互不影响。每套方案是 components/home-variants/ 下
+// 一个独立文件，登记在 registry.ts 里；加删方案不用动这里。
+//
+// ?home=<id> 决定初始方案（把链接直接发给评审即可），没带参数时由
+// HomeVariantHost 回退到 localStorage 上次选择 / 注册表默认方案。
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ home?: string }>;
+}) {
+  const { home } = await searchParams;
+  return <HomeVariantHost initialVariantId={home ?? null} />;
 }
