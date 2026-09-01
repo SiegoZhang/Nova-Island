@@ -28,17 +28,13 @@ export interface HomeVariant {
 
 export const VARIANTS: HomeVariant[] = [
   {
-    id: "slidedeck",
-    label: "方案 A · 整屏幻灯片",
-    description: "纯黑底，每个板块占满一屏，滚轮吸附翻页 + 粒子形变过渡。",
-    Component: dynamic(() => import("./VariantSlideDeck"), { ssr: true }),
-  },
-  {
     id: "editorial",
     label: "方案 B · 编辑式长滚动",
     description: "浅色版式，传统自上而下滚动，大标题 + 留白 + 章节锚点。",
     Component: dynamic(() => import("./VariantEditorial"), { ssr: true }),
   },
+  // 方案 A（整屏幻灯片 VariantSlideDeck）已整体删除。它的 Hero「流动等高线」
+  // 效果单独封存在 ./preserved/PlanAHeroFlowField.tsx，之后要复用从那里取。
 ];
 
 export const DEFAULT_VARIANT_ID = VARIANTS[0].id;

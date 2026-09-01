@@ -16,6 +16,9 @@ export function HomeVariantSwitcher({ activeId, onSelect }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
+  // 只剩一套方案时切换器没意义（方案 A 已删），直接隐藏。加回第二套即恢复。
+  const hidden = VARIANTS.length < 2;
+
   useEffect(() => {
     if (!open) return;
     function onDocClick(e: MouseEvent) {
@@ -31,6 +34,8 @@ export function HomeVariantSwitcher({ activeId, onSelect }: Props) {
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
+
+  if (hidden) return null;
 
   const active = VARIANTS.find((v) => v.id === activeId) ?? VARIANTS[0];
 

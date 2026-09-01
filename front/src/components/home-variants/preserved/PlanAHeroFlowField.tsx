@@ -3,30 +3,40 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 
+import { HeroCtas } from "@/components/HeroCtas";
 import {
   CommitSlider,
   TuningPanelShell,
 } from "@/components/dotSystemTuningControls";
-import {
-  createVisibilityLifecycle,
-  prefersReducedMotion,
-} from "@/lib/dotSystem/runtime";
+import { createVisibilityLifecycle, prefersReducedMotion } from "@/lib/dotSystem/runtime";
+import { useHeroTheme } from "@/lib/heroTheme";
 
-// Hero 背景：一整块「流动等高线」。参照 CCT "Universes" LED 幕墙的观感——
-// 不是位移的平行线网格，而是一个二维标量场被反复自我扭曲（IQ 的 domain
-// warping）后抽出的等值线，线随时间缓慢流动、morph，黑底叠加发光。
+// ─────────────────────────────────────────────────────────────────────────────
+// 【已封存 · 方案 A 的 Hero】
 //
-// 实现方式跟站内其它点阵效果一致：一个 <canvas> + 单个全屏三角形 +
-// ShaderMaterial，美术全在片元着色器里。没有 React state 驱动重绘，挂载后
-// 在一个 useEffect 里手写 resize / rAF 循环，复用 dotSystem/runtime 里的
-// 可见性生命周期与「减少动效」判断。
+// 这是原「方案 A · 整屏幻灯片」首页的 Hero：一整块「流动等高线」GLSL 背景
+// （HeroFlowField）+ 居中的浅色文案 + CTA。方案 A 整体已从代码里删除，
+// 这个 Hero 效果单独留在这里，之后如果要复用直接从这里取。
 //
-// 配色取站点现有蓝调（近黑底 → 深靛蓝 → 板岩蓝 → 浅长春花蓝 → 冷调冰白），
-// 跟 AI 社群区块、/ai /fde 页的点阵色阶同一套，纯氛围、不响应鼠标。
+// 当前没有任何地方渲染它。要用的话：
+//   import { PlanAHeroSection } from "@/components/home-variants/preserved/PlanAHeroFlowField";
+// 依赖（都还在仓库里）：HeroCtas / useHeroTheme / dotSystemTuningControls /
+// dotSystem/runtime / three。
 //
-// 性能：fbm 每像素约 5 次调用 × 4 个倍频，对集显偏重——渲染缓冲按
-// QUALITY 系数降采样（画面本身是柔的，CSS 放大看不出），并夹住 DPR；
-// prefers-reduced-motion 下只画一帧、不起 rAF。
+// 原文件：components/HeroFlowField.tsx + components/HeroSection.tsx（已删除，合并到此）
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── HeroFlowField：Hero 背景「流动等高线」──────────────────────────────────
+// 参照 CCT "Universes" LED 幕墙的观感——不是位移的平行线网格，而是一个二维
+// 标量场被反复自我扭曲（IQ 的 domain warping）后抽出的等值线，线随时间缓慢
+// 流动、morph，黑底叠加发光。
+//
+// 一个 <canvas> + 单个全屏三角形 + ShaderMaterial，美术全在片元着色器里。
+// 没有 React state 驱动重绘，挂载后在一个 useEffect 里手写 resize / rAF 循环，
+// 复用 dotSystem/runtime 里的可见性生命周期与「减少动效」判断。
+//
+// 性能：fbm 每像素约 5 次调用 × 4 个倍频，对集显偏重——渲染缓冲按 QUALITY
+// 系数降采样并夹住 DPR；prefers-reduced-motion 下只画一帧、不起 rAF。
 
 const VERTEX_SHADER = /* glsl */ `
   varying vec2 vUv;
@@ -136,15 +146,13 @@ const FRAGMENT_SHADER = /* glsl */ `
   }
 `;
 
-// 渲染缓冲降采样系数：画面是柔的，0.8× 缓冲 CSS 放大后基本无损，换来 fbm
-// 着色的明显提速。
+// 渲染缓冲降采样系数：画面是柔的，0.8× 缓冲 CSS 放大后基本无损。
 const QUALITY = 0.8;
 
 function hex(value: string): THREE.Color {
   return new THREE.Color(value);
 }
 
-// 站点蓝调，跟 HeroSection 的点阵色阶同源。
 const PALETTE = {
   bgTop: "#0a1330",
   bgBottom: "#020306",
@@ -165,7 +173,6 @@ const FLOW_FIELD_DEFAULTS = {
 type FlowFieldTuning = typeof FLOW_FIELD_DEFAULTS;
 
 const DEV_TUNING_ENABLED = process.env.NODE_ENV !== "production";
-// 每次改动上面的默认值就把版本号 +1，让旧的 localStorage 快照失效。
 const STORAGE_KEY = "novaisland:hero-flowfield:v1";
 
 function loadTuning(): FlowFieldTuning {
@@ -180,23 +187,19 @@ function loadTuning(): FlowFieldTuning {
   }
 }
 
-export function HeroFlowField() {
+export function PlanAHeroFlowField() {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  // uniform 的引用挂在 ref 上，调参面板改动后直接写 .value，不重建场景。
   const uniformsRef = useRef<Record<string, THREE.IUniform> | null>(null);
   const renderOnceRef = useRef<(() => void) | null>(null);
 
   const [tuning, setTuning] = useState<FlowFieldTuning>(FLOW_FIELD_DEFAULTS);
 
-  // 挂载后（仅开发环境）把上次调参读回来。放 effect 里而不是 useState 初始值，
-  // 避免 SSR / 客户端首帧不一致触发 hydration mismatch。
   useEffect(() => {
     if (!DEV_TUNING_ENABLED) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTuning(loadTuning());
   }, []);
 
-  // 调参落盘：状态一变就写完整快照。
   const skipFirstPersist = useRef(true);
   useEffect(() => {
     if (!DEV_TUNING_ENABLED || typeof window === "undefined") return;
@@ -211,7 +214,6 @@ export function HeroFlowField() {
     }
   }, [tuning]);
 
-  // 调参值推进 uniform（不重建场景）。reduced-motion 下 rAF 不跑，手动补一帧。
   useEffect(() => {
     const u = uniformsRef.current;
     if (!u) return;
@@ -253,8 +255,6 @@ export function HeroFlowField() {
       depthWrite: false,
       depthTest: false,
     });
-    // fwidth：three r163+ 的 WebGLRenderer 只跑 WebGL2，导数函数在 GLSL ES
-    // 1.00 shader 里也已是核心特性，无需再开 OES_standard_derivatives。
 
     // 全屏三角形——比铺满的四边形少一次对角线上的过绘制。
     const geometry = new THREE.BufferGeometry();
@@ -416,5 +416,62 @@ export function HeroFlowField() {
         </TuningPanelShell>
       )}
     </>
+  );
+}
+
+// ── PlanAHeroSection：整块 Hero（流场背景 + 居中文案 + CTA）───────────────
+// 背景是深色，hero 非浅底、隐藏网格竖线（挂载时通知一次 heroTheme）。
+// 文案整套浅色系，CTA 走 light={false}（白色系按钮）。
+
+const HERO_ENTRANCE_DURATION_MS = 700;
+
+export function PlanAHeroSection() {
+  const { setIsHeroLight, setHideHeroRails } = useHeroTheme();
+
+  useEffect(() => {
+    setIsHeroLight(true);
+    setHideHeroRails(true);
+  }, [setIsHeroLight, setHideHeroRails]);
+
+  return (
+    <section id="hero" className="relative h-[100svh] w-full">
+      <div className="relative flex h-full w-full items-start justify-center overflow-hidden bg-black">
+        <PlanAHeroFlowField />
+
+        <div
+          data-parallax
+          className="relative flex flex-col items-center px-6 pt-[24vh] text-center"
+        >
+          <div className="flex flex-col items-center">
+            <p
+              className="reveal text-[15px] font-medium text-white/55"
+              style={{ animationDuration: `${HERO_ENTRANCE_DURATION_MS}ms` }}
+            >
+              让 AI 从认知走向价值
+            </p>
+
+            <h1
+              className="reveal mt-5 bg-gradient-to-r from-[#d9d9d9] to-white bg-clip-text text-[clamp(56px,11vw,84px)] font-semibold leading-[1.05] tracking-[-0.03em] text-transparent"
+              style={{ animationDuration: `${HERO_ENTRANCE_DURATION_MS}ms` }}
+            >
+              新岛
+            </h1>
+
+            <p
+              className="reveal mt-8 max-w-[600px] text-[18px] leading-[1.6] text-white/75"
+              style={{ animationDuration: `${HERO_ENTRANCE_DURATION_MS}ms` }}
+            >
+              专注于人工智能领域的知识服务与工程落地，以AI社群保持认知领先，以FDE驱动工程落地。
+            </p>
+
+            <HeroCtas
+              light={false}
+              revealDurationMs={HERO_ENTRANCE_DURATION_MS}
+              revealDelayMs={0}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
