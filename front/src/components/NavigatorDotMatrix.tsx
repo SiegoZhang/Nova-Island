@@ -151,6 +151,8 @@ const FRAGMENT_SHADER = /* glsl */ `
   uniform vec3 uHoverColor;
   uniform float uHoverStrength;
   uniform float uMaxAlpha;
+  // 1 = 把每颗点画成一粒水晶玻璃珠（对齐 Hero 水晶球质感）；0 = 原来的柔和灰点。
+  uniform float uGlass;
 
   varying float vLuminance;
   varying float vMask;
@@ -161,15 +163,41 @@ const FRAGMENT_SHADER = /* glsl */ `
 
     vec2 centered = gl_PointCoord - vec2(0.5);
     float dist = length(centered);
+    if (dist > 0.5) discard;
+
+    float lum = clamp(vLuminance, 0.0, 1.0);
+
+    if (uGlass > 0.5) {
+      // ── 水晶玻璃质感：半球法线近似 → 偏左上的一枚高光 + 一圈菲涅尔虹彩
+      //    边 + 半透明珠体，珠心透、珠缘实，跟 Hero 水晶球同一套观感。 ──
+      float z = sqrt(max(0.0, 0.25 - dist * dist)) * 2.0; // 珠心最高 → 边缘 0
+      vec3 N = normalize(vec3(centered * 2.0, z + 0.001));
+
+      vec3 body = mix(uColorLow, uColorGlow, lum); // 冷紫白珠体
+      float fres = pow(1.0 - z, 2.6);              // 菲涅尔：珠缘一圈亮
+      float ang = atan(centered.y, centered.x);
+      vec3 irid = 0.5 + 0.5 * cos(6.2831 * (vec3(0.0, 0.33, 0.66) + ang * 0.159 + lum * 0.7));
+      vec3 rim = mix(vec3(0.72, 0.78, 1.0), irid, 0.55) * fres;
+
+      vec3 L = normalize(vec3(-0.55, 0.62, 0.85)); // 偏左上点光
+      float spec = pow(max(dot(N, L), 0.0), 26.0);
+
+      vec3 col = body + rim * 0.85 + spec * vec3(1.0);
+      col += uColorHigh * smoothstep(0.7, 0.98, lum) * 0.6; // 折射亮芯
+      col = mix(col, uHoverColor, clamp(vPointerGlow * uHoverStrength, 0.0, 1.0));
+
+      float edgeSoft = 1.0 - smoothstep(0.4, 0.5, dist);
+      float alpha = edgeSoft * vMask * uMaxAlpha *
+        clamp(mix(0.42, 0.9, lum) + fres * 0.5, 0.0, 1.0);
+      gl_FragColor = vec4(clamp(col, 0.0, 1.0), alpha);
+      return;
+    }
+
+    // ── 默认：柔和灰点阵（/ai 手风琴等浅色场景保持不变）──
     float circle = 1.0 - smoothstep(0.32, 0.5, dist);
     if (circle <= 0.0) discard;
-
-    // 主色调：按亮度在两档灰（uColorLow→uColorGlow）之间插值，形成点阵纹理。
-    float lum = clamp(vLuminance, 0.0, 1.0);
     vec3 color = mix(uColorLow, uColorGlow, lum);
-    // 少量高光：仅亮度最高的一小段染成高光色 uColorHigh。
     color = mix(color, uColorHigh, smoothstep(0.72, 0.95, lum));
-    // 鼠标邻近染色：离光标越近的点越往 uHoverColor 偏。
     color = mix(color, uHoverColor, clamp(vPointerGlow * uHoverStrength, 0.0, 1.0));
     float alpha = circle * vMask * uMaxAlpha;
     gl_FragColor = vec4(color, alpha);
@@ -194,6 +222,7 @@ interface NavigatorDotCoreProps {
   jitter: number;
   edgeSpray: number;
   sizeVariance: number;
+  glass: boolean;
   background: string;
   maxAlpha: number;
   speed: number;
@@ -222,6 +251,7 @@ function NavigatorDotCore({
   jitter,
   edgeSpray,
   sizeVariance,
+  glass,
   background,
   maxAlpha,
   speed,
@@ -299,6 +329,7 @@ function NavigatorDotCore({
         uJitter: { value: jitter },
         uEdgeSpray: { value: edgeSpray },
         uSizeVariance: { value: sizeVariance },
+        uGlass: { value: glass ? 1 : 0 },
         uMaxAlpha: { value: maxAlpha },
         uPointer: { value: new THREE.Vector2(0, 0) },
         uPointerRadius: { value: pointerRadius },
@@ -524,6 +555,7 @@ function NavigatorDotCore({
     material.uniforms.uJitter.value = jitter;
     material.uniforms.uEdgeSpray.value = edgeSpray;
     material.uniforms.uSizeVariance.value = sizeVariance;
+    material.uniforms.uGlass.value = glass ? 1 : 0;
     material.uniforms.uMaxAlpha.value = maxAlpha;
     material.uniforms.uPointerRadius.value = pointerRadius;
     material.uniforms.uPointerAttract.value = pointerAttract;
@@ -542,6 +574,7 @@ function NavigatorDotCore({
     jitter,
     edgeSpray,
     sizeVariance,
+    glass,
     maxAlpha,
     pointerRadius,
     pointerAttract,
@@ -605,6 +638,9 @@ const NAVIGATOR_DEFAULTS = {
   pointerSizeBoost: 1.2,
 } as const;
 
+// glass 模式下珠体的冷色调（对齐 Hero 水晶球的长春花紫 / 淡紫白）。
+const GLASS_COLORS = { low: "#9a91d6", glow: "#e4defb", high: "#ffffff" } as const;
+
 export interface NavigatorDotMatrixProps {
   className?: string;
   background?: string;
@@ -638,6 +674,9 @@ export interface NavigatorDotMatrixProps {
   edgeSpray?: number;
   /** 每点大小的随机幅度 0~1（0=关闭）。 */
   sizeVariance?: number;
+  /** 把人像每颗点画成水晶玻璃珠（菲涅尔边 + 高光 + 半透明珠体，对齐 Hero
+   *  水晶球质感），默认 false。深色场景专用；浅色页保持 false。 */
+  glass?: boolean;
   /** 鼠标"收拢"力度——半径内的点朝光标偏移的比例，默认 0.35。 */
   pointerAttract?: number;
   /** 鼠标"冲散"力度——半径内的点沿背离光标方向被推开，默认 0（不冲散）。 */
@@ -661,6 +700,7 @@ export function NavigatorDotMatrix({
   jitter: jitterProp,
   edgeSpray: edgeSprayProp,
   sizeVariance: sizeVarianceProp,
+  glass = false,
   pointerAttract: pointerAttractProp,
   pointerSizeBoost: pointerSizeBoostProp,
   pointerScatter: pointerScatterProp,
@@ -674,8 +714,12 @@ export function NavigatorDotMatrix({
   );
   const [softness, setSoftness] = useState<number>(NAVIGATOR_DEFAULTS.softness);
   const [contrast, setContrast] = useState<number>(NAVIGATOR_DEFAULTS.contrast);
-  const [colorLow, setColorLow] = useState<string>(NAVIGATOR_DEFAULTS.colorLow);
-  const [colorHigh, setColorHigh] = useState<string>(NAVIGATOR_DEFAULTS.colorHigh);
+  const [colorLow, setColorLow] = useState<string>(
+    glass ? GLASS_COLORS.low : NAVIGATOR_DEFAULTS.colorLow,
+  );
+  const [colorHigh, setColorHigh] = useState<string>(
+    glass ? GLASS_COLORS.high : NAVIGATOR_DEFAULTS.colorHigh,
+  );
   const [hoverColor, setHoverColor] = useState<string>(
     hoverColorProp ?? NAVIGATOR_DEFAULTS.hoverColor,
   );
@@ -724,12 +768,13 @@ export function NavigatorDotMatrix({
     edgeFadeStart: NAVIGATOR_DEFAULTS.edgeFadeStart,
     colorLow,
     colorHigh,
-    colorGlow: NAVIGATOR_DEFAULTS.colorGlow,
+    colorGlow: glass ? GLASS_COLORS.glow : NAVIGATOR_DEFAULTS.colorGlow,
     hoverColor,
     hoverStrength: NAVIGATOR_DEFAULTS.hoverStrength,
     jitter,
     edgeSpray,
     sizeVariance,
+    glass,
     background,
     maxAlpha: NAVIGATOR_DEFAULTS.maxAlpha,
     speed: NAVIGATOR_DEFAULTS.speed,

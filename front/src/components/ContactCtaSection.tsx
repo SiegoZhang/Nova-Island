@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
 import {
@@ -9,6 +8,8 @@ import {
   TuningPanelShell,
   TuningSlider,
 } from "@/components/dotSystemTuningControls";
+import { CtaButton } from "@/components/CtaButton";
+import { LazyMount } from "@/components/LazyMount";
 import { VideoDotMatrix } from "@/components/VideoDotMatrix";
 import { ePageContainer } from "@/lib/eleven";
 
@@ -57,7 +58,16 @@ const CONTACT_DEFAULTS = {
 
 const DOT_ENTRANCE_DURATION_MS = 700;
 
-export function ContactCtaSection() {
+export function ContactCtaSection({
+  /**
+   * 让点阵画布背景透明（不铺 CONTACT_DEFAULTS.background 的黑底），点与点
+   * 之间的空隙透出后面的内容。用于「进入宇宙」转场里最后一张卡——那张卡
+   * 要保持星空背景，不能盖一层黑。默认 false，独立页 / 其它场景不受影响。
+   */
+  transparentBackground = false,
+}: {
+  transparentBackground?: boolean;
+} = {}) {
   const [density, setDensity] = useState<number>(CONTACT_DEFAULTS.density);
   const [dotMaxSize, setDotMaxSize] = useState<number>(CONTACT_DEFAULTS.dotMaxSize);
   const [rightShiftPercent, setRightShiftPercent] = useState<number>(
@@ -77,8 +87,9 @@ export function ContactCtaSection() {
   const gridRows = Math.max(4, Math.round(CONTACT_BASE_GRID_ROWS * density));
 
   return (
-    <section className="relative z-20 w-full overflow-hidden py-16">
-      <div className={`${ePageContainer} flex min-h-[520px] items-center justify-center`}>
+    <section id="contact" className="relative z-20 w-full overflow-hidden">
+      {/* 和 AI社群 / FDE 一致：本板块单独占满一个视口高度，内容整体垂直居中。 */}
+      <div className={`${ePageContainer} flex min-h-[100svh] items-center justify-center py-24`}>
         {/* 光环视频点阵在这个方框里居中；文案+CTA 叠在同一个方框正中央，
             正好落在光环中心那片黑色镂空区域里，视觉上与光环合成一个整体，
             而不是两层互不相关的内容各自居中。窄屏下方框宽度被迫收窄到
@@ -92,10 +103,12 @@ export function ContactCtaSection() {
               transform: `translateX(${rightShiftPercent}%) translateY(${downShiftPercent}%) scale(${sizePercent / 100})`,
             }}
           >
+            <LazyMount className="absolute inset-0" marginPx={300}>
             <VideoDotMatrix
               className="absolute inset-0"
               src={CONTACT_DEFAULTS.src}
               background={CONTACT_DEFAULTS.background}
+              transparentBackground={transparentBackground}
               colorLow={CONTACT_DEFAULTS.colorLow}
               colorHigh={CONTACT_DEFAULTS.colorHigh}
               squareDotRatio={CONTACT_DEFAULTS.squareDotRatio}
@@ -117,6 +130,7 @@ export function ContactCtaSection() {
               hoverSizeBoost={hoverSizeBoost}
               hoverColor={CONTACT_DEFAULTS.hoverColor}
             />
+            </LazyMount>
           </div>
 
           <div className="reveal absolute inset-0 z-10 flex flex-col items-center justify-center px-6 text-center">
@@ -132,12 +146,9 @@ export function ContactCtaSection() {
             >
               有问题、有合作意向，或者只是想聊聊 AI，都欢迎找我们。
             </p>
-            <Link
-              href="/contact"
-              className="mt-4 inline-flex items-center justify-center rounded-full bg-[#F8FBFA] px-5 py-2.5 text-[13px] font-medium tracking-[-0.01em] text-[#22232A] transition-colors duration-200 hover:bg-[#F8FBFA]/90 active:scale-[0.97] sm:mt-7 sm:px-6 sm:py-3 sm:text-[14px]"
-            >
+            <CtaButton href="/contact" onDark size="md" className="mt-4 sm:mt-7">
               联系我们
-            </Link>
+            </CtaButton>
           </div>
 
           {process.env.NODE_ENV !== "production" && (

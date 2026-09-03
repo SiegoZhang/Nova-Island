@@ -38,7 +38,9 @@
 }
 
 :root {
-  --main-nav-height: 48px;
+  /* 悬浮胶囊导航：贴顶 12px + 胶囊本体 ~44px，子页面（社区二级导航 / 账号中心
+     正文）按这个高度预留顶部空间。 */
+  --main-nav-height: 60px;
   --main-nav-safe-height: calc(var(--main-nav-height) + env(safe-area-inset-top,0px));
   --background: #f8f9fa;
   --foreground: #151719;
@@ -70,6 +72,14 @@
   --nova-card-bg: rgb(255 255 255 / 64%);
   --nova-card-border: rgb(21 23 25 / 8%);
   --nova-shadow: 0 12px 40px rgb(21 23 25 / 5%);
+
+  /* 星空宇宙 → AI社群(#EEEEF0) 的过渡缝。两个数是耦合的（弧要正好在那段
+     业务介绍读完时升到位）：--seam-arc-h 是弧形渐变带的高度，--seam-overlap
+     是 VariantEditorial 里 <main> 往上叠住 sticky 舞台的重叠量。改一个通常
+     要回看另一个。AiCommunityCarousel 的 .seam-arc 和 VariantEditorial 的
+     负上边距都引用这里。 */
+  --seam-arc-h: 108vh;
+  --seam-overlap: 8vh;
 }
 
 /* 放进 @layer base，避免这条无 layer 的全局重置在层叠优先级上
@@ -175,6 +185,87 @@ button {
   }
 }
 
+/* UniverseTransition 业务介绍「逐字填实」：容器上的 --fill = 已点亮字数
+   （含小数），每个字带自己的 --i 序号。相差经 ~4 字羽化，从暗灰(0.24)亮到
+   纯白(1)。只改 opacity，逐帧只写一个 --fill，其余交给 CSS。 */
+.uv-fill-char {
+  opacity: calc(
+    0.24 + 0.76 * clamp(0, calc((var(--fill, 0) - var(--i, 0)) / 4), 1)
+  );
+  transition: opacity 70ms linear;
+}
+
+/* ── 星空 → AI社群 的过渡弧 ─────────────────────────────────────
+   单层、少色标、感知空间插值。
+   · 顶部 0–24% 完全透明：这块弧体会一直往上盖到视口顶端，透明才能让星空
+     继续透出来（导航是独立 fixed 层、不受影响）。透明端也用 #332161
+     （= 深空 clear color），压在星场上同色、看不出边。
+   · 24–42% 由透明升到不透明 #332161，42–92% 才是真正「显影」到 #EEEEF0 的
+     那段——这段整段不透明，渐变形状精确、不受背景影响。
+   第一条 background 是不支持 `in oklab` 时的 sRGB 兜底，第二条覆盖它。 */
+.seam-arc {
+  background: radial-gradient(
+    ellipse 150% 108% at 50% -30%,
+    rgb(51 33 97 / 0) 0%,
+    rgb(51 33 97 / 0) 24%,
+    #332161 42%,
+    #8b78ac 64%,
+    #eeeef0 92%,
+    #eeeef0 100%
+  );
+  background: radial-gradient(
+    ellipse 150% 108% at 50% -30% in oklab,
+    rgb(51 33 97 / 0) 0%,
+    rgb(51 33 97 / 0) 24%,
+    #332161 42%,
+    #eeeef0 92%,
+    #eeeef0 100%
+  );
+}
+
+/* 大面积软渐变在 8-bit 屏上必然分层：铺一层极淡的 turbulence 噪点打散色带。
+   inline SVG（~300B）、overlay 混合、opacity 很低——肉眼看不见噪点，只是
+   把「一圈圈」的 banding 碎掉。父层的 opacity 会一起带着它淡入。 */
+.seam-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 120px 120px;
+  mix-blend-mode: overlay;
+  opacity: 0.04;
+  /* 只铺在弧的不透明段，别盖到顶部透明区（那儿要透出星空）。 */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 26%, #000 40%);
+  mask-image: linear-gradient(to bottom, transparent 26%, #000 40%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seam-grain {
+    display: none;
+  }
+}
+
+/* 落地页悬浮导航（HomeNav）挂载时的一次性淡入。以前这段淡入由
+   UniverseTransition 的入场时间线命令式驱动；导航独立成 fixed 顶层后
+   自己播。时长/曲线对齐原来的手感（intro 前 ~0.2 段，smoothstep）。 */
+.home-nav-in {
+  animation: home-nav-in 620ms cubic-bezier(0.33, 0, 0.2, 1) both;
+}
+
+@keyframes home-nav-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-nav-in {
+    animation: none;
+  }
+}
+
 .fade-in {
   animation: fade-in 400ms ease both;
 }
@@ -202,6 +293,76 @@ button {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Hero 底部滚动提示：鼠标外框整体极缓上下浮动，内部滚轮圆点向下循环
+   滑动 + 首尾淡出，做出"往下滚"的暗示。 */
+.scroll-cue {
+  animation: scroll-cue-bob 2.4s ease-in-out infinite;
+}
+
+@keyframes scroll-cue-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.scroll-cue-wheel {
+  animation: scroll-cue-wheel 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes scroll-cue-wheel {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue,
+  .scroll-cue-wheel {
+    animation: none;
+  }
+  .scroll-cue-wheel {
+    transform: translate(-50%, 0);
+  }
+}
+
+/* Hero 水晶球的冰晶外壳：极缓慢地摆动 + 呼吸，让那圈起伏的轮廓有"液态
+   玻璃"的生命感，不是一块死的贴图。 */
+.ice-shell-sway {
+  animation: ice-shell-sway 24s ease-in-out infinite;
+  transform-origin: 50% 50%;
+}
+
+@keyframes ice-shell-sway {
+  0%,
+  100% {
+    transform: rotate(calc(var(--ice-sway-deg, 2deg) * -1));
+  }
+  50% {
+    transform: rotate(var(--ice-sway-deg, 2deg));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ice-shell-sway {
+    animation: none;
   }
 }
 
@@ -362,6 +523,67 @@ button {
 }
 [data-slide][data-active] [data-title-reveal] {
   opacity: 1;
+}
+
+/* FDE：把 Hero 水晶球的紫色星云、色散与焦散展开成全屏玻璃场。 */
+.fde-flow-color {
+  background:
+    radial-gradient(ellipse at 10% 76%, rgb(51 33 97 / 0.88), transparent 43%),
+    radial-gradient(ellipse at 76% 80%, rgb(140 87 199 / 0.74), transparent 46%),
+    radial-gradient(ellipse at 61% 34%, rgb(204 179 235 / 0.9), transparent 38%),
+    radial-gradient(ellipse at 18% 12%, rgb(143 216 229 / 0.72), transparent 36%),
+    radial-gradient(circle at 48% 58%, rgb(255 250 242 / 0.72), transparent 20%),
+    linear-gradient(132deg, #b9dfe8 0%, #8c73bf 34%, #c9b4e6 66%, #eadce6 100%);
+  filter: saturate(1.12);
+  will-change: transform;
+  animation: fde-flow-drift 11s ease-in-out infinite alternate;
+}
+
+.fde-flow-ribbon {
+  background: linear-gradient(112deg, rgb(255 255 255 / 0) 4%, rgb(244 241 255 / 0.82) 29%, rgb(143 216 229 / 0.58) 45%, rgb(140 87 199 / 0.72) 62%, rgb(240 184 219 / 0.48) 79%, transparent 96%);
+  filter: blur(13px);
+  transform-origin: 50% 50%;
+  will-change: translate, scale;
+  animation: fde-ribbon-drift 9s ease-in-out infinite alternate;
+}
+
+.fde-flow-ribbon-secondary {
+  opacity: 0.66;
+  animation-delay: -6s;
+  animation-duration: 13s;
+}
+
+.fde-glass-surface {
+  background-image:
+    radial-gradient(ellipse at 28% 8%, rgb(255 255 255 / 0.62), transparent 32%),
+    radial-gradient(ellipse at 76% 92%, rgb(143 216 229 / 0.18), transparent 42%),
+    linear-gradient(118deg, rgb(255 255 255 / 0.34), rgb(255 255 255 / 0.04) 38%, rgb(204 179 235 / 0.12) 68%, rgb(255 255 255 / 0.24));
+}
+
+.fde-glass-stars {
+  background-image:
+    radial-gradient(circle, rgb(255 255 255 / 0.9) 0 1px, transparent 1.8px),
+    radial-gradient(circle, rgb(231 220 251 / 0.72) 0 0.8px, transparent 1.6px),
+    radial-gradient(circle, rgb(179 226 236 / 0.76) 0 1px, transparent 1.8px);
+  background-position: 12px 18px, 68px 42px, 34px 86px;
+  background-size: 112px 96px, 146px 128px, 188px 154px;
+  animation: fde-stars-drift 24s linear infinite;
+}
+
+@keyframes fde-flow-drift {
+  from { transform: translate3d(-5%, 3%, 0) scale(1.03) rotate(-1.5deg); }
+  to { transform: translate3d(6%, -4%, 0) scale(1.12) rotate(2deg); }
+}
+
+@keyframes fde-ribbon-drift {
+  from { translate: -5% 4%; scale: 0.96 0.9; }
+  to { translate: 7% -6%; scale: 1.14 1.08; }
+}
+
+@keyframes fde-stars-drift {
+  from { transform: translate3d(0, 0, 0); opacity: 0.42; }
+  50% { opacity: 0.78; }
+  to { transform: translate3d(26px, -18px, 0); opacity: 0.48; }
 }
 
 @media (prefers-reduced-motion: reduce) {

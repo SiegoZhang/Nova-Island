@@ -40,7 +40,7 @@ const GLOBE_DEFAULTS = {
   // 地球整体缩放（%，100=铺满点阵容器）——靠 CSS transform: scale() 缩放
   // 已渲染好的点阵画布，不改网格密度/点径，超出容器的部分被卡片
   // overflow-hidden 裁掉。只缩地球，不缩上面的 logo 网格。
-  sizePercent: 129,
+  sizePercent: 123,
   // 亮度→颜色 4 段色阶：暗部贴卡片底色 #101012 融进背景，只有最亮端是
   // 品牌蓝高光。
   colorDark: "#d6d6d6",

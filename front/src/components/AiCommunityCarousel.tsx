@@ -1,337 +1,180 @@
 "use client";
 
-import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
-import { ChevronDownIcon } from "@/components/icons";
-import { LazyMount } from "@/components/LazyMount";
-import { NavigatorDotMatrix } from "@/components/NavigatorDotMatrix";
-import { useSlideDeckOptional } from "@/components/SlideDeck";
-import {
-  aiCommunityFeatures as features,
-  type AiCommunityDimensions,
-} from "@/lib/aiCommunityFeatures";
+import { CtaButton } from "@/components/CtaButton";
+import { CrystalCardGeometry } from "@/components/CrystalCardGeometry";
 import { eMono } from "@/lib/eleven";
 
-// Figma node 217:13「spectral-analysis-dashboard」——AI 社群板块整体做成一台
-// 光谱分析仪的读数界面：
-//   · 左列（telemetry）：AI社群标题 + 简介 + 「了解详情」，滚动时保持不变。
-//   · 中间（target-coordinate-area）：始终是「成为领航员」那尊点阵人像
-//     （NavigatorDotMatrix），外面套一实一虚两个方框 + 同心圆 + 十字线 +
-//     LAMBDA 轴。鼠标悬浮时两个方框错位交叠，人像上光标附近的粒子稍微
-//     收拢（不染色）。滚轮不切换中间元素。
-//   · 右列：NN/06 编号 + 维度名 + 描述 + 四维雷达图（交流 / 收获 / 提升 /
-//     前沿），随滚轮或上下按钮在 6 个维度之间切换。
+// AI 社群板块（首页方案 B）——落在 #EEEEF0 浅色底上。
 //
-// 交互：悬浮在仪表盘上纵向滚轮切换右侧维度，一次手势切一格（空闲重置
-// 防抖，跟 TeamSection/FdeSection 同一套），到首尾不再拦截，把滚动交还
-// 给 SlideDeck 翻屏。
+//   · 从星空进入本板块的过渡是本组件顶部那**单层** .seam-arc 圆弧渐变
+//     （bottom-full，随滚动跟板块一起上升，随 --universe-ai-ready 淡入）。
+//     顶端与深空同色、底端 #EEEEF0，本板块直接同色接上。
+//   · 标题 + 简介 + 「了解详情」。
+//   · 四张卡片横向平均排布；默认全部收起、不显示详情。鼠标悬浮（或键盘
+//     聚焦）到某一张，这张卡拓宽、浮现分隔线 + 详情描述，其余卡片等比收窄。
+//
+// 六个原始维度按「内容 / 工具 / 连接 / 领航」合并为四张卡。移动端（<md）
+// 竖向堆叠，四张卡详情全部展开、不依赖悬浮。
 
-const WHEEL_GESTURE_IDLE_MS = 200;
+interface CommunityCard {
+  /** 卡片右上角的 mono 大写标签 */
+  tag: string;
+  /** 卡片主标题 */
+  label: string;
+  /** 展开后的详情描述 */
+  description: readonly [string, string];
+}
 
-// 中间「成为领航员」点阵人像的构图 / 悬浮 / 散布参数。开发环境下点阵右下角
-// 的 ⚙ 面板（NavigatorDotMatrix 内置，tuningId="aiCommunityNavigator"）拖动
-// 松手后，会由 /api/dev/dot-tuning 直接写回这个常量块——不需要手动抄数值。
-// 这些是首页实例专用，跟 /ai 手风琴用的 NAVIGATOR_DEFAULTS 互不影响。
-const AI_COMMUNITY_NAVIGATOR_DEFAULTS = {
-  sizePercent: 91,
-  rightShiftPercent: 4,
-  downShiftPercent: -2,
-  density: 2,
-  dotMaxSize: 2.7,
-  jitter: 0,
-  edgeSpray: 0,
-  sizeVariance: 0.46,
-  pointerRadius: 0.18,
-  // 鼠标划过时把光标周围一圈粒子往外挤一点（环形推力 + 每点随机偏转），
-  // 不是清空——光标正中心几乎不推，粒子只是变稀。冲散和吸附反向，吸附归 0。
-  pointerAttract: 0,
-  pointerScatter: 0.04,
-  pointerSizeBoost: 0,
-} as const;
+const cards: CommunityCard[] = [
+  {
+    tag: "INSIGHT",
+    label: "前沿内容",
+    description: [
+      "每周精选值得关注的 AI 动态与趋势，过滤重复噪音；",
+      "结合深度长文与真实案例，留下可复用的方法。",
+    ],
+  },
+  {
+    tag: "TOOLING",
+    label: "工具教程",
+    description: [
+      "精选值得投入时间的 AI 工具，讲清配置与核心用法；",
+      "结合真实场景和避坑提示，把工具嵌入日常工作流。",
+    ],
+  },
+  {
+    tag: "NETWORK",
+    label: "社群连接",
+    description: [
+      "线上线下沙龙聚焦具体议题，邀请一线实践者分享；",
+      "在同频圈子交换资源与经验，带走可执行的收获。",
+    ],
+  },
+  {
+    tag: "CONTRIBUTE",
+    label: "成为领航员",
+    description: [
+      "持续输出、组织活动或帮助他人，可申请成为领航员；",
+      "获得专属资源与深度连接，共同定义社群价值。",
+    ],
+  },
+];
 
 export function AiCommunityCarousel() {
-  const [active, setActive] = useState(0);
-  const activeRef = useRef(0);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const wheelIdleRef = useRef<number | null>(null);
-
-  // 翻页粒子形变过渡：把人形渲染区注册为「ai」落点锚，并让整屏内容随
-  // --ai-fde-t 淡出（粒子层接管），见 AiFdeParticleMorph / SlideDeck。
-  const registerMorphAnchor = useSlideDeckOptional()?.registerMorphAnchor;
-  const figureMountRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    registerMorphAnchor?.("ai", figureMountRef.current);
-    return () => registerMorphAnchor?.("ai", null);
-  }, [registerMorphAnchor]);
-
-  const go = useCallback((next: number) => {
-    if (next < 0 || next >= features.length || next === activeRef.current) return;
-    activeRef.current = next;
-    setActive(next);
-  }, []);
-
-  useEffect(() => {
-    const el = rootRef.current;
-    if (!el) return;
-
-    const onWheel = (event: WheelEvent) => {
-      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
-      const dir = event.deltaY > 0 ? 1 : -1;
-      const next = activeRef.current + dir;
-      if (next < 0 || next >= features.length) return; // 首尾放行 → SlideDeck 翻屏
-
-      event.preventDefault();
-      if (wheelIdleRef.current === null) {
-        go(next);
-      } else {
-        window.clearTimeout(wheelIdleRef.current);
-      }
-      wheelIdleRef.current = window.setTimeout(() => {
-        wheelIdleRef.current = null;
-      }, WHEEL_GESTURE_IDLE_MS);
-    };
-
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => {
-      el.removeEventListener("wheel", onWheel);
-      if (wheelIdleRef.current !== null) window.clearTimeout(wheelIdleRef.current);
-    };
-  }, [go]);
-
-  const feature = features[active];
+  // 默认四张卡都收起、不显示详情；鼠标悬浮（或键盘聚焦）到某一张才展开，
+  // 鼠标离开整组恢复全部收起。
+  const [active, setActive] = useState<number | null>(null);
 
   return (
-    <section id="ai" className="w-full">
+    <section id="ai" className="relative w-full overflow-x-clip bg-[#EEEEF0] text-[#1c1917]">
+      {/* ── 业务介绍 → 本板块的过渡缝：**单层**中央向下凹的圆弧渐变。
+           顶部与深空同色 (#332161)、底部落到 #EEEEF0，感知空间插值 + 一层
+           噪点消 banding（.seam-arc / .seam-grain 在 globals.css）。整条缝
+           只有这一层——UniverseTransition 那边不再画 wash / 白幕。
+           随 --universe-ai-ready 淡入；顶端同色所以淡入只在下半段可见。
+           高度用 --seam-arc-h，和 VariantEditorial 里 <main> 的负边距耦合。 */}
       <div
-        ref={rootRef}
-        style={{ opacity: "clamp(0, calc((0.16 - var(--ai-fde-t, 0)) / 0.16), 1)" }}
-        className="relative mx-auto flex min-h-[100svh] w-full max-w-[1440px] flex-col overflow-hidden md:h-[100svh]"
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-full"
+        style={{
+          height: "var(--seam-arc-h, 108vh)",
+          opacity: "var(--universe-ai-ready, 0)",
+          willChange: "opacity",
+        }}
       >
-        <div className="relative z-10 flex flex-1 flex-col gap-14 px-6 py-24 md:grid md:grid-cols-[minmax(240px,320px)_minmax(0,1fr)_minmax(280px,340px)] md:items-center md:gap-8 md:px-12 md:py-0">
-          {/* ── 左列 telemetry ── */}
-          <div className="reveal flex flex-col gap-7">
-            <div>
-              <h2
-                data-title-reveal="1"
-                className={`${eMono} whitespace-nowrap text-[clamp(40px,5vw,56px)] font-bold leading-[0.95] tracking-[-0.02em] text-[#f3f4f6]`}
-              >
-                AI社群
-              </h2>
-              <p data-title-reveal="2" className={`${eMono} mt-2 text-[12px] text-[#9ca3af]`}>
-                新岛AI
-              </p>
-            </div>
-            <div>
-              <p className={`${eMono} text-[9px] uppercase tracking-[0.15em] text-[#4b5563]`}>Intro</p>
-              <p className={`${eMono} mt-2 text-[11px] leading-[1.75] text-[#9ca3af]`}>
-                3000+ 行业先行者的选择，用最低成本保持对 AI 前沿的持续感知。每日精选全球顶尖 AI
-                研究、产品动态与实战案例，帮助你快速掌握技术趋势，将 AI
-                能力转化为实际生产力。无论你是开发者、创业者还是企业决策者，这里都是你连接 AI
-                未来的第一入口。
-              </p>
-            </div>
-            <Link
-              href="/ai"
-              className={`${eMono} inline-flex w-fit items-center rounded-[4px] border border-[#9ca3af] bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#070709] transition-colors hover:bg-[#e5e7eb]`}
+        <div className="seam-arc absolute inset-0" />
+        <div className="seam-grain absolute inset-0" />
+      </div>
+      {/* 内容顶部对齐、只留很窄的顶部留白：配合上面那道弧与 VariantEditorial 里
+          main 的大负上边距，弧沿升上来后标题紧跟其后。底部留白照旧，给下方 FDE
+          板块留呼吸。 */}
+      <div className="relative mx-auto flex min-h-[100svh] w-full max-w-[1440px] flex-col justify-start gap-14 px-6 pb-28 pt-[3vh] md:px-12 md:pt-[4vh]">
+        {/* ── 抬头 ── */}
+        <div className="reveal flex flex-col gap-5">
+          <div>
+            <h2
+              className={`${eMono} whitespace-nowrap text-[clamp(40px,5vw,56px)] font-bold leading-[0.95] tracking-[-0.02em] text-[#1c1917]`}
             >
-              了解详情
-            </Link>
+              AI社群
+            </h2>
+            <p className={`${eMono} mt-2 text-[12px] text-[#78716c]`}>新岛AI</p>
           </div>
-
-          {/* ── 中间 target-coordinate-area ── */}
-          <div
-            data-parallax
-            className="reveal group relative mx-auto aspect-square w-[min(88vw,520px)] md:w-[min(60vh,600px)]"
-          >
-            {/* 外圈大圆 + 十字线 —— 跟着放大的人形一起撑大，圆已到方盒边缘 */}
-            <div className="absolute inset-[-2%] rounded-full border border-white/10" />
-            <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-white/10" />
-            <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-white/10" />
-            {/* 左右边缘的小十字标记（Figma 参考图里那两个 +） */}
-            <span
-              className={`${eMono} absolute top-1/2 -left-[7%] -translate-y-1/2 text-[12px] text-white/25`}
-            >
-              +
-            </span>
-            <span
-              className={`${eMono} absolute top-1/2 -right-[7%] -translate-y-1/2 text-[12px] text-white/25`}
-            >
-              +
-            </span>
-
-            {/* 实线方框 A —— 悬浮时向左下错位并轻微逆时针旋转 */}
-            <div className="absolute inset-[9%] border border-[#9ca3af]/55 transition-transform duration-500 ease-out group-hover:-translate-x-[6%] group-hover:translate-y-[5%] group-hover:-rotate-2" />
-            {/* 虚线方框 B —— 默认右上错位，悬浮时错得更开并顺时针旋转 */}
-            <div className="absolute inset-[9%] -translate-y-[10%] translate-x-[13%] border border-dashed border-[#9ca3af]/55 transition-transform duration-500 ease-out group-hover:-translate-y-[17%] group-hover:translate-x-[23%] group-hover:rotate-2">
-              <span
-                className={`${eMono} absolute right-1.5 top-1.5 bg-[#f3f4f6] px-1.5 py-0.5 text-[9px] font-bold text-[#070709]`}
-              >
-                Found
-              </span>
-            </div>
-
-            {/* 内同心圆 */}
-            <div className="absolute inset-[19%] rounded-full border border-white/[0.06]" />
-
-            {/* 点阵人像（常驻，不随滚动切换）。视频渲染区用负 inset 撑到比
-                外圈装饰框还大一圈，人形整体更大、可以溢出同心圆；内部再靠
-                sizePercent 微调。density/dotMaxSize/jitter/edgeSpray/
-                sizeVariance 把规整网格点阵打散成飘散的粒子云——人像轮廓处
-                的点沿径向喷出、每点大小随机，边缘碎成不连续颗粒。鼠标划过
-                时光标附近的粒子被冲散拨开（pointerScatter），不染色、不放大。 */}
-            {/* 渲染区：宽 120%（左右各 -10%）、高 140%（上下各 -20%）。视频是
-                16:9 横幅，塞进这个"更高的框"里会变成按宽度撑满、纵向留黑边，
-                于是人形在窗口里的实际高度矮了一截，还稳稳居中、不碰下方
-                LAMBDA 轴。 */}
-            <div
-              ref={figureMountRef}
-              className="absolute -left-[10%] -right-[10%] -top-[20%] -bottom-[20%] overflow-hidden"
-            >
-              <LazyMount>
-                <NavigatorDotMatrix
-                  className="fade-in"
-                  background="#000000"
-                  tuningId="aiCommunityNavigator"
-                  compactTuning
-                  {...AI_COMMUNITY_NAVIGATOR_DEFAULTS}
-                />
-              </LazyMount>
-            </div>
-
-            {/* LAMBDA 轴 —— z-10 压在粒子渲染区之上，确保不被遮 */}
-            <div
-              className={`${eMono} absolute -bottom-11 left-0 z-10 flex w-full items-center justify-between px-[13%] text-[10px] text-[#9ca3af]`}
-            >
-              <span>0.1</span>
-              <span>1.0</span>
-              <span>10.0</span>
-            </div>
-            <p
-              className={`${eMono} absolute -bottom-[68px] left-1/2 z-10 -translate-x-1/2 text-[8px] tracking-[0.15em] text-[#4b5563]`}
-            >
-              LAMBDA (um)
-            </p>
-          </div>
-
-          {/* ── 右列：雷达图 + 读数 ──
-              整体再往左收 md:pr-12，避开 SlideDeck 右侧那条竖向翻屏圆点导航
-              （fixed right-4），不跟它重叠。 */}
-          <div className="reveal flex flex-col items-end gap-9 md:pr-12">
-            <CommunityRadar dims={feature.dimensions} />
-            {/* key={active} 让整块在切换维度时重新挂载，三行文字各自带
-                rise-in（从下方 14px 浮现 + 淡入，缓出曲线），并按 0 / 90 /
-                180ms 错峰，形成"呼吸式"依次浮现，而不是整体闪一下。 */}
-            <div key={active} className="flex w-full flex-col items-end text-right">
-              <p className={`${eMono} rise-in text-[10px] text-[#9ca3af]`}>
-                {String(active + 1).padStart(2, "0")}/{String(features.length).padStart(2, "0")}
-              </p>
-              <h3
-                className={`${eMono} rise-in mt-1 text-[22px] font-bold text-[#f3f4f6] md:text-[26px]`}
-                style={{ animationDelay: "90ms" }}
-              >
-                {feature.label}
-              </h3>
-              <p
-                className={`${eMono} rise-in mt-5 max-w-[320px] text-[11px] leading-[1.8] text-[#9ca3af]`}
-                style={{ animationDelay: "180ms" }}
-              >
-                {feature.description}
-              </p>
-            </div>
-          </div>
+          <p className="max-w-[560px] text-[14px] leading-[1.8] text-[#57534e]">
+            3000+ 行业先行者的选择，用最低成本保持对 AI 前沿的持续感知。每日精选全球顶尖 AI
+            研究、产品动态与实战案例，把 AI 能力转化为实际生产力——无论你是开发者、创业者还是企业
+            决策者，这里都是你连接 AI 未来的第一入口。
+          </p>
+          <CtaButton href="/ai" size="md" className="w-fit">
+            了解详情
+          </CtaButton>
         </div>
 
-        {/* 上 / 下切换按钮 */}
-        <div className="absolute bottom-8 right-6 z-10 flex flex-col gap-1 md:bottom-[7%] md:right-[7%]">
-          <button
-            type="button"
-            aria-label="上一个维度"
-            onClick={() => go(active - 1)}
-            disabled={active === 0}
-            className="flex size-7 items-center justify-center rounded-[4px] border border-white/10 text-[#9ca3af] transition-colors hover:border-white/25 hover:text-white disabled:pointer-events-none disabled:opacity-30"
-          >
-            <ChevronDownIcon className="size-3 rotate-180" />
-          </button>
-          <button
-            type="button"
-            aria-label="下一个维度"
-            onClick={() => go(active + 1)}
-            disabled={active === features.length - 1}
-            className="flex size-7 items-center justify-center rounded-[4px] border border-white/10 text-[#9ca3af] transition-colors hover:border-white/25 hover:text-white disabled:pointer-events-none disabled:opacity-30"
-          >
-            <ChevronDownIcon className="size-3" />
-          </button>
+        {/* ── 四张卡片：横向平均排布，悬浮拓宽 ── */}
+        <div
+          className="flex flex-col gap-3 md:h-[420px] md:flex-row"
+          onMouseLeave={() => setActive(null)}
+        >
+          {cards.map((card, index) => {
+            const isActive = active === index;
+            return (
+              <article
+                key={card.label}
+                tabIndex={0}
+                onMouseEnter={() => setActive(index)}
+                onFocus={() => setActive(index)}
+                data-active={isActive}
+                style={{ flexGrow: isActive ? 2.6 : 1, flexBasis: 0 }}
+                className={`group relative flex min-w-0 cursor-default flex-col justify-between overflow-hidden rounded-2xl border p-6 outline-none transition-[flex-grow,background-color,border-color,box-shadow] duration-500 ease-out max-md:!grow-0 ${
+                  isActive
+                    ? "border-black/[0.12] bg-white shadow-[0_20px_60px_-30px_rgba(28,25,23,0.35)]"
+                    : "border-black/[0.08] bg-white/45 hover:bg-white/70"
+                }`}
+              >
+                {/* 标签行 */}
+                <div className="flex items-baseline justify-between gap-4">
+                  <span
+                    className={`${eMono} text-[10px] uppercase tracking-[0.22em] text-[#6b7280]`}
+                  >
+                    {card.tag}
+                  </span>
+                  <span className={`${eMono} shrink-0 text-[10px] text-[#a8a29e]`}>
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                </div>
+
+                {/* 与 Hero 水晶球同材质语言的 3D 几何体 */}
+                <CrystalCardGeometry variant={index} active={isActive} />
+
+                {/* 标题 + 展开详情 */}
+                <div>
+                  <h3 className="text-[20px] font-medium tracking-[-0.01em] text-[#1c1917]">
+                    {card.label}
+                  </h3>
+                  <div
+                    className="grid transition-[grid-template-rows,opacity] duration-500 ease-out max-md:!grid-rows-[1fr] max-md:!opacity-100"
+                    style={{
+                      gridTemplateRows: isActive ? "1fr" : "0fr",
+                      opacity: isActive ? 1 : 0,
+                    }}
+                  >
+                    <div className="overflow-hidden">
+                      <p className="mt-4 min-h-[45.5px] w-full text-[13px] leading-[1.75] text-[#57534e]">
+                        {card.description.map((line) => (
+                          <span key={line} className="block whitespace-nowrap">
+                            {line}
+                          </span>
+                        ))}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </div>
     </section>
-  );
-}
-
-// 四维雷达图：中心 50/50，四个顶点各沿一条半轴伸出（交流↑ / 收获→ /
-// 提升↓ / 前沿←）。只保留菱形网格环 + 白色半透明数据多边形 + 发光顶点
-// 圆点，不画贯穿全图的十字线，也不画中心到顶点的辐条——clip-path / top /
-// left 都能用纯 CSS 过渡，切换维度时多边形平滑变形。
-const RADAR_MAX = 40; // 数据顶点最远伸到盒子的 40%（留出到最外层菱形环的余量）
-
-const RADAR_RING_TONES = ["border-white/25", "border-white/[0.14]", "border-white/[0.08]"];
-// 菱形网格环的缩放：外环 0.7（rotate45 后四个角正好落在 176 方盒四条边的
-// 中点上、不再戳出边框），往里两层等比缩小。维度文字贴着方盒外侧、正对
-// 菱形四个角，不会被网格盖住。
-const RADAR_RING_SCALES = [0.7, 0.47, 0.24];
-
-function CommunityRadar({ dims }: { dims: AiCommunityDimensions }) {
-  const { exchange, gain, growth, frontier } = dims;
-  const clip = `polygon(50% ${50 - RADAR_MAX * exchange}%, ${50 + RADAR_MAX * gain}% 50%, 50% ${
-    50 + RADAR_MAX * growth
-  }%, ${50 - RADAR_MAX * frontier}% 50%)`;
-
-  const dot =
-    "absolute size-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80 shadow-[0_0_3px_rgba(255,255,255,0.35)] transition-[top,left] duration-500 ease-out";
-
-  return (
-    <div className="relative size-[144px] shrink-0" aria-hidden="true">
-      {/* 菱形网格环——由外到内逐层变淡 */}
-      {RADAR_RING_SCALES.map((s, i) => (
-        <div
-          key={s}
-          className={`absolute inset-0 border ${RADAR_RING_TONES[i]}`}
-          style={{ transform: `rotate(45deg) scale(${s})` }}
-        />
-      ))}
-      {/* 白色半透明数据区 */}
-      <div
-        className="absolute inset-0 bg-white/[0.1] transition-[clip-path] duration-500 ease-out"
-        style={{ clipPath: clip, WebkitClipPath: clip }}
-      />
-
-      {/* 顶点圆点 */}
-      <span className={dot} style={{ left: "50%", top: `${50 - RADAR_MAX * exchange}%` }} />
-      <span className={dot} style={{ left: `${50 + RADAR_MAX * gain}%`, top: "50%" }} />
-      <span className={dot} style={{ left: "50%", top: `${50 + RADAR_MAX * growth}%` }} />
-      <span className={dot} style={{ left: `${50 - RADAR_MAX * frontier}%`, top: "50%" }} />
-
-      {/* 维度标签 */}
-      <span
-        className={`${eMono} absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white/45`}
-      >
-        交流
-      </span>
-      <span
-        className={`${eMono} absolute -right-8 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/45`}
-      >
-        收获
-      </span>
-      <span
-        className={`${eMono} absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white/45`}
-      >
-        提升
-      </span>
-      <span
-        className={`${eMono} absolute -left-8 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/45`}
-      >
-        前沿
-      </span>
-    </div>
   );
 }

@@ -23,8 +23,6 @@ type TerrainTuning = {
   speed: number;
   terrainHeight: number;
   shadowStrength: number;
-  forceRadius: number;
-  forceStrength: number;
   pointerLift: number;
 };
 
@@ -36,8 +34,6 @@ const TERRAIN_DEFAULTS: TerrainTuning = {
   speed: 100,
   terrainHeight: 100,
   shadowStrength: 100,
-  forceRadius: 100,
-  forceStrength: 100,
   pointerLift: 100,
 };
 
@@ -67,8 +63,6 @@ const TERRAIN_VERT = /* glsl */ `
   uniform float uWaveAmplitude;
   uniform float uSpeed;
   uniform float uTerrainHeight;
-  uniform float uForceRadius;
-  uniform float uForceStrength;
   uniform vec2  uPointer;         // 指针在地面(y=0)的投影 (worldX, worldZ)
   uniform float uPointerStrength; // 0→1，进入/离开时平滑渐变
   uniform float uPointerLift;     // 调参：涟漪强度
@@ -101,17 +95,10 @@ const TERRAIN_VERT = /* glsl */ `
       sin(z * 0.48 - animTime * 0.19) * 0.34 +
       sin((x + z) * 0.21 + animTime * 0.13) * 0.24;
 
-    // 水晶球正下方仅把波形逐渐压平，不再排斥或隐藏粒子。
-    vec2 fieldDelta = vec2(x - 0.22, (z + 7.1) * 0.78);
-    float fieldDistance = length(fieldDelta);
-    float fieldRadius = 2.75 * uForceRadius;
-    float forceGate = smoothstep(fieldRadius * 0.72, fieldRadius * 1.18, fieldDistance);
-    float waveGate = mix(1.0, forceGate, clamp(uForceStrength, 0.0, 1.0));
-    wave *= waveGate;
-
+    // 地形自由起伏：水晶球正下方不再压平波形。
     float moundX = x * 0.17;
     float moundZ = (z + 2.0) * 0.12;
-    float mound = exp(-moundX * moundX - moundZ * moundZ) * 0.16 * waveGate;
+    float mound = exp(-moundX * moundX - moundZ * moundZ) * 0.16;
 
     // 环境波形高度（不含指针涟漪）——密度跟着它走
     float baseY = (wave * uWaveAmplitude + mound) * uTerrainHeight;
@@ -135,11 +122,9 @@ const TERRAIN_VERT = /* glsl */ `
     float nearFade = 1.0 - smoothstep(0.56, 1.0, position.z);
     float centerX = position.x * 2.4;
     float centerLift = 1.0 + exp(-centerX * centerX) * 0.42;
-    float fieldEdge =
-      1.0 - smoothstep(0.0, fieldRadius * 0.2, abs(fieldDistance - fieldRadius));
     vAlpha =
       sideFade * farFade * nearFade * centerLift * 0.62 *
-      (1.0 + fieldEdge * 0.08) * (1.0 + vRipple * 0.55) *
+      (1.0 + vRipple * 0.55) *
       visible;
     vRidge = smoothstep(-0.35, 0.85, y);
 
@@ -159,23 +144,23 @@ const TERRAIN_FRAG = /* glsl */ `
 
   varying float vAlpha;
   varying float vRidge;
-  varying float vRipple;
 
   void main() {
     float d = length(gl_PointCoord - 0.5);
     if (d > 0.5) discard;
     float outer = 1.0 - smoothstep(0.34, 0.5, d);
     float core = 1.0 - smoothstep(0.12, 0.31, d);
-    // 可见粒子基色纯白；指针涟漪处微微染上水晶球的淡紫。
+    // 粒子恒为纯白——指针涟漪只改高度/大小/亮度，不染色。
     float particleAlpha =
       (outer * 0.32 + core * (0.68 + vRidge * 0.18)) * vAlpha * uBrightness;
-    vec3 tint = mix(vec3(1.0), vec3(0.84, 0.78, 1.0), clamp(vRipple * 0.6, 0.0, 0.55));
-    gl_FragColor = vec4(tint, clamp(particleAlpha, 0.0, 0.98));
+    gl_FragColor = vec4(vec3(1.0), clamp(particleAlpha, 0.0, 0.98));
   }
 `;
 
-// 下层是一张连续的灰色曲面，不再用放大的点粒子模拟阴影。
-// 它与上层白色点阵共用低频波形和力场，但位置更低、相位稍滞后。
+// 下层是一张连续曲面，染成**水晶球玻璃质感**的色——玻璃色散般的珍珠虹彩，
+// 颜色随波高 / 位置 / 时间在「淡紫 ↔ 蜜桃 ↔ 微青」之间缓慢移相，不是平涂一种色。
+// 不再用放大的点粒子模拟阴影。它与上层白色点阵共用低频波形，
+// 但位置更低、相位稍滞后。
 const WAVE_SURFACE_VERT = /* glsl */ `
   precision highp float;
 
@@ -184,37 +169,31 @@ const WAVE_SURFACE_VERT = /* glsl */ `
   uniform float uWaveAmplitude;
   uniform float uSpeed;
   uniform float uTerrainHeight;
-  uniform float uForceRadius;
-  uniform float uForceStrength;
   uniform vec2  uPointer;
   uniform float uPointerStrength;
   uniform float uPointerLift;
 
   varying float vSurfaceAlpha;
   varying float vSurfaceHeight;
-  varying float vSurfaceEdge;
   varying float vSurfaceRipple;
+  varying float vIrid;
 
   void main() {
     float x = position.x * uFieldWidth;
     float z = position.z * 10.5 - 3.0;
     float animTime = (uTime - 0.48) * uSpeed;
 
+    // 虹彩相位：沿场地平面缓慢铺开，让色散色带横贯波面。
+    vIrid = x * 0.085 + z * 0.12;
+
     float wave =
       sin(x * 0.38 + animTime * 0.24 + 0.28) * 0.48 +
       sin(z * 0.48 - animTime * 0.19 + 0.2) * 0.34 +
       sin((x + z) * 0.21 + animTime * 0.13 + 0.14) * 0.24;
 
-    vec2 fieldDelta = vec2(x - 0.22, (z + 7.1) * 0.78);
-    float fieldDistance = length(fieldDelta);
-    float fieldRadius = 2.75 * uForceRadius;
-    float forceGate = smoothstep(fieldRadius * 0.72, fieldRadius * 1.18, fieldDistance);
-    float waveGate = mix(1.0, forceGate, clamp(uForceStrength, 0.0, 1.0));
-    wave *= waveGate;
-
     float moundX = x * 0.17;
     float moundZ = (z + 2.0) * 0.12;
-    float mound = exp(-moundX * moundX - moundZ * moundZ) * 0.16 * waveGate;
+    float mound = exp(-moundX * moundX - moundZ * moundZ) * 0.16;
     float y = (wave * uWaveAmplitude + mound) * uTerrainHeight - 0.31;
 
     vec2 pDelta = vec2(x, z) - uPointer;
@@ -232,11 +211,8 @@ const WAVE_SURFACE_VERT = /* glsl */ `
     float sideFade = 1.0 - smoothstep(0.5, 1.0, abs(position.x));
     float farFade = smoothstep(-1.0, -0.82, position.z);
     float nearFade = 1.0 - smoothstep(0.5, 1.0, position.z);
-    float fieldEdge =
-      1.0 - smoothstep(0.0, fieldRadius * 0.22, abs(fieldDistance - fieldRadius));
     vSurfaceAlpha = sideFade * farFade * nearFade;
     vSurfaceHeight = smoothstep(-0.72, 0.72, y + 0.31);
-    vSurfaceEdge = fieldEdge;
   }
 `;
 
@@ -244,23 +220,36 @@ const WAVE_SURFACE_FRAG = /* glsl */ `
   precision highp float;
 
   uniform float uShadowStrength;
+  uniform float uTime;
 
   varying float vSurfaceAlpha;
   varying float vSurfaceHeight;
-  varying float vSurfaceEdge;
   varying float vSurfaceRipple;
+  varying float vIrid;
 
   void main() {
-    vec3 lowColor = vec3(0.78, 0.79, 0.82);
-    vec3 highColor = vec3(0.52, 0.54, 0.6);
-    vec3 surfaceColor = mix(lowColor, highColor, vSurfaceHeight * 0.72);
-    surfaceColor = mix(surfaceColor, vec3(0.65, 0.64, 0.71), vSurfaceEdge * 0.18);
-    surfaceColor = mix(surfaceColor, vec3(0.62, 0.57, 0.74), clamp(vSurfaceRipple * 0.5, 0.0, 0.4));
+    // 水晶球玻璃质感：像球缘色散那样绕相位循环的珍珠虹彩。相位由位置 + 波高 +
+    // 缓慢时间漂移驱动 → 色带横贯波面、极缓地流动，而不是平涂一种颜色。
+    float phase = vIrid + vSurfaceHeight * 0.55 + uTime * 0.022;
+    vec3 iris = 0.5 + 0.5 * cos(6.2831 * (vec3(0.0, 0.33, 0.66) + phase));
+    // 三档水晶色，全部收进**冷调长春花紫**区间（呼应浅底），都压在浅底亮度
+    // 之下才读得出「波」，按虹彩权重调和。
+    vec3 lilac = vec3(0.60, 0.60, 0.78);  // 长春花紫
+    vec3 mauve = vec3(0.72, 0.68, 0.80);  // 灰藕
+    vec3 aqua  = vec3(0.56, 0.64, 0.82);  // 冷蓝
+    vec3 crystal =
+      (lilac * iris.r + mauve * iris.g + aqua * iris.b) /
+      max(iris.r + iris.g + iris.b, 0.55);
+    // 珠光冷白底 → 虹彩，随波高增强；波谷贴近底色，波峰虹彩最明显。
+    vec3 pearl = vec3(0.83, 0.83, 0.89);
+    vec3 surfaceColor = mix(pearl, crystal, 0.36 + vSurfaceHeight * 0.42);
+    // 指针涟漪只抬高度、微增不透明度，不额外染色。整体保持「几乎看不见的一层
+    // 薄雾」——参考稿里底部只是一丝纹理，不喧宾夺主。
     float alpha =
-      (0.09 + vSurfaceHeight * 0.11 + vSurfaceEdge * 0.025 + vSurfaceRipple * 0.06) *
+      (0.085 + vSurfaceHeight * 0.10 + vSurfaceRipple * 0.05) *
       vSurfaceAlpha *
       uShadowStrength;
-    gl_FragColor = vec4(surfaceColor, clamp(alpha, 0.0, 0.3));
+    gl_FragColor = vec4(surfaceColor, clamp(alpha, 0.0, 0.27));
   }
 `;
 
@@ -365,8 +354,6 @@ export function HeroParticleTerrain({
       uniforms.uSpeed.value = tuning.speed / 100;
       uniforms.uTerrainHeight.value = tuning.terrainHeight / 100;
       uniforms.uShadowStrength.value = tuning.shadowStrength / 100;
-      uniforms.uForceRadius.value = tuning.forceRadius / 100;
-      uniforms.uForceStrength.value = tuning.forceStrength / 100;
       uniforms.uPointerLift.value = tuning.pointerLift / 100;
     }
     renderOnceRef.current?.();
@@ -406,8 +393,6 @@ export function HeroParticleTerrain({
       uSpeed: { value: tuning.speed / 100 },
       uTerrainHeight: { value: tuning.terrainHeight / 100 },
       uShadowStrength: { value: tuning.shadowStrength / 100 },
-      uForceRadius: { value: tuning.forceRadius / 100 },
-      uForceStrength: { value: tuning.forceStrength / 100 },
       uPointer: { value: new THREE.Vector2(999, 999) },
       uPointerStrength: { value: 0 },
       uPointerLift: { value: tuning.pointerLift / 100 },
@@ -637,9 +622,7 @@ export function HeroParticleTerrain({
               <TuningSlider label="波幅" value={tuning.waveAmplitude} min={25} max={180} step={5} unit="%" onChange={(value) => setValue("waveAmplitude", value)} />
               <TuningSlider label="速度" value={tuning.speed} min={0} max={180} step={5} unit="%" onChange={(value) => setValue("speed", value)} />
               <TuningSlider label="地形高度" value={tuning.terrainHeight} min={50} max={160} step={5} unit="%" onChange={(value) => setValue("terrainHeight", value)} />
-              <TuningSlider label="灰色波浪" value={tuning.shadowStrength} min={0} max={180} step={5} unit="%" onChange={(value) => setValue("shadowStrength", value)} />
-              <TuningSlider label="力场宽度" value={tuning.forceRadius} min={55} max={160} step={5} unit="%" onChange={(value) => setValue("forceRadius", value)} />
-              <TuningSlider label="力场平整" value={tuning.forceStrength} min={0} max={100} step={5} unit="%" onChange={(value) => setValue("forceStrength", value)} />
+              <TuningSlider label="水晶波浪" value={tuning.shadowStrength} min={0} max={180} step={5} unit="%" onChange={(value) => setValue("shadowStrength", value)} />
               <TuningSlider label="指针涟漪" value={tuning.pointerLift} min={0} max={200} step={5} unit="%" onChange={(value) => setValue("pointerLift", value)} />
               <button
                 type="button"

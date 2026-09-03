@@ -1,18 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { FdeGlobeLogos } from "@/components/FdeGlobeLogos";
+import { CtaButton } from "@/components/CtaButton";
 import { ChevronDownIcon } from "@/components/icons";
-import { LazyMount } from "@/components/LazyMount";
-import { useSlideDeckOptional } from "@/components/SlideDeck";
 import { eMono } from "@/lib/eleven";
 
 // FDE 业务板块——排版对齐 AI社群（AiCommunityCarousel）：
 //   · 左列：FDE 标题 + 简介 + 「了解详情」，滚动时保持不变。
-//   · 中间：点阵地球（FdeGlobeLogos），位置 / 尺寸跟 AI社群那尊人形一致，
-//     外面套同心圆 + 十字线 + 角标。滚轮不切换中间元素。
+//   · 背景：底层蓝 / 青 / 淡紫流彩，上层覆盖整面的半透明雾化玻璃。
 //   · 右列：NN/03 编号 + 卡片标题 + 描述，随滚轮 / 上下按钮在 3 张卡之间切换。
 //
 // 交互跟 AiCommunityCarousel 同一套：纵向滚轮切右列，一次手势一格，空闲防抖，
@@ -43,15 +39,6 @@ export function FdeSection() {
   const activeRef = useRef(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const wheelIdleRef = useRef<number | null>(null);
-
-  // 翻页粒子形变过渡：点阵地球注册为「fde」落点锚，整屏内容随 --ai-fde-t
-  // 反向淡入（粒子层炸开成球后交回给真正的点阵地球），见 AiFdeParticleMorph。
-  const registerMorphAnchor = useSlideDeckOptional()?.registerMorphAnchor;
-  const globeAnchorRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    registerMorphAnchor?.("fde", globeAnchorRef.current);
-    return () => registerMorphAnchor?.("fde", null);
-  }, [registerMorphAnchor]);
 
   const go = useCallback((next: number) => {
     if (next < 0 || next >= highlights.length || next === activeRef.current) return;
@@ -90,7 +77,36 @@ export function FdeSection() {
   const item = highlights[active];
 
   return (
-    <section id="fde" className="w-full">
+    <section
+      id="fde"
+      className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-clip bg-[#ddd8e8]"
+    >
+      {/* AI 社群→FDE：与上一处一致的宽而浅圆弧，进入本屏后白色柔和退去。 */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-full z-[1] h-[78vh]"
+        style={{
+          background:
+            "radial-gradient(ellipse 115% 44% at 50% 108%, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.98) 56%, rgba(255,255,255,0.82) 68%, rgba(255,255,255,0.46) 82%, rgba(255,255,255,0.14) 93%, rgba(255,255,255,0) 100%)",
+        }}
+      />
+
+      {/* 全屏底层流彩：脱离 1440px 内容容器，始终横铺整个视口。 */}
+      <div aria-hidden className="absolute inset-0 overflow-hidden bg-[#ddd8e8]">
+        <div className="fde-flow-color absolute inset-[-18%]" />
+        <div className="fde-flow-ribbon absolute -left-[18%] bottom-[-16%] h-[72%] w-[112%] -rotate-[11deg] rounded-[50%]" />
+        <div className="fde-flow-ribbon fde-flow-ribbon-secondary absolute -right-[28%] top-[5%] h-[54%] w-[88%] rotate-[14deg] rounded-[50%]" />
+        <div className="fde-glass-stars absolute inset-0 opacity-70" />
+        <div className="fde-glass-surface absolute inset-[1px] border border-white/60 bg-white/16 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-1px_0_rgba(79,48,121,0.2)] backdrop-blur-[20px]" />
+        <div
+          className="absolute inset-x-0 top-0 h-[42vh]"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.82) 16%, rgba(255,255,255,0.46) 40%, rgba(255,255,255,0.16) 68%, rgba(255,255,255,0) 100%)",
+          }}
+        />
+      </div>
+
       <div
         ref={rootRef}
         style={{ opacity: "clamp(0, calc((var(--ai-fde-t, 1) - 0.55) / 0.35), 1)" }}
@@ -102,75 +118,41 @@ export function FdeSection() {
             <div>
               <h2
                 data-title-reveal="1"
-                className={`${eMono} whitespace-nowrap text-[clamp(40px,5vw,56px)] font-bold leading-[0.95] tracking-[-0.02em] text-[#f3f4f6]`}
+                className={`${eMono} whitespace-nowrap text-[clamp(40px,5vw,56px)] font-bold leading-[0.95] tracking-[-0.02em] text-[#172331]`}
               >
                 FDE业务
               </h2>
-              <p data-title-reveal="2" className={`${eMono} mt-2 text-[12px] text-[#9ca3af]`}>
+              <p data-title-reveal="2" className={`${eMono} mt-2 text-[12px] text-[#61798a]`}>
                 新岛FDE
               </p>
             </div>
             <div>
-              <p className={`${eMono} text-[9px] uppercase tracking-[0.15em] text-[#4b5563]`}>Intro</p>
-              <p className={`${eMono} mt-2 text-[11px] leading-[1.75] text-[#9ca3af]`}>
+              <p className={`${eMono} text-[9px] uppercase tracking-[0.15em] text-[#7590a1]`}>Intro</p>
+              <p className={`${eMono} mt-2 text-[11px] leading-[1.75] text-[#536c7d]`}>
                 Forward Deployed Engineer——区别于标准化方案，我们把工程师直接派到客户的真实业务
                 现场，深入具体场景做定制交付，用工程化能力驱动 AI 的规模化落地与持续见效，而不是
                 停在概念验证阶段。
               </p>
             </div>
-            <Link
-              href="/fde"
-              className={`${eMono} inline-flex w-fit items-center rounded-[4px] border border-[#9ca3af] bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#070709] transition-colors hover:bg-[#e5e7eb]`}
-            >
+            <CtaButton href="/fde" size="md" className="w-fit">
               了解详情
-            </Link>
-          </div>
-
-          {/* ── 中间：点阵地球（位置 / 尺寸对齐 AI社群人形）── */}
-          <div
-            data-parallax
-            className="reveal relative mx-auto aspect-square w-[min(88vw,520px)] md:w-[min(60vh,600px)]"
-          >
-            {/* 外圈大圆 + 十字线 */}
-            <div className="absolute inset-[-2%] rounded-full border border-white/10" />
-            <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-white/10" />
-            <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-white/10" />
-            <span
-              className={`${eMono} absolute top-1/2 -left-[7%] -translate-y-1/2 text-[12px] text-white/25`}
-            >
-              +
-            </span>
-            <span
-              className={`${eMono} absolute top-1/2 -right-[7%] -translate-y-1/2 text-[12px] text-white/25`}
-            >
-              +
-            </span>
-
-            {/* 内同心圆 */}
-            <div className="absolute inset-[19%] rounded-full border border-white/[0.06]" />
-
-            {/* 点阵地球本体——globeAnchorRef 同时是翻页粒子过渡的「fde」落点锚。 */}
-            <div ref={globeAnchorRef} className="absolute inset-[2%] overflow-hidden">
-              <LazyMount>
-                <FdeGlobeLogos showLogos={false} className="size-full" />
-              </LazyMount>
-            </div>
+            </CtaButton>
           </div>
 
           {/* ── 右列：三张卡片的内容，随滚轮切换 ── */}
-          <div className="reveal flex flex-col items-end gap-9 md:pr-12">
+          <div className="reveal flex flex-col items-end gap-9 md:col-start-3 md:pr-12">
             <div key={active} className="flex w-full flex-col items-end text-right">
-              <p className={`${eMono} rise-in text-[10px] text-[#9ca3af]`}>
+              <p className={`${eMono} rise-in text-[10px] text-[#61798a]`}>
                 {String(active + 1).padStart(2, "0")}/{String(highlights.length).padStart(2, "0")}
               </p>
               <h3
-                className={`${eMono} rise-in mt-1 text-[22px] font-bold text-[#f3f4f6] md:text-[26px]`}
+                className={`${eMono} rise-in mt-1 text-[22px] font-bold text-[#172331] md:text-[26px]`}
                 style={{ animationDelay: "90ms" }}
               >
                 {item.step}
               </h3>
               <p
-                className={`${eMono} rise-in mt-5 max-w-[320px] text-[11px] leading-[1.8] text-[#9ca3af]`}
+                className={`${eMono} rise-in mt-5 max-w-[320px] text-[11px] leading-[1.8] text-[#536c7d]`}
                 style={{ animationDelay: "180ms" }}
               >
                 {item.description}
@@ -186,7 +168,7 @@ export function FdeSection() {
             aria-label="上一张卡片"
             onClick={() => go(active - 1)}
             disabled={active === 0}
-            className="flex size-7 items-center justify-center rounded-[4px] border border-white/10 text-[#9ca3af] transition-colors hover:border-white/25 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+            className="flex size-7 items-center justify-center rounded-[4px] border border-[#172331]/10 text-[#61798a] transition-colors hover:border-[#172331]/25 hover:text-[#172331] disabled:pointer-events-none disabled:opacity-30"
           >
             <ChevronDownIcon className="size-3 rotate-180" />
           </button>
@@ -195,7 +177,7 @@ export function FdeSection() {
             aria-label="下一张卡片"
             onClick={() => go(active + 1)}
             disabled={active === highlights.length - 1}
-            className="flex size-7 items-center justify-center rounded-[4px] border border-white/10 text-[#9ca3af] transition-colors hover:border-white/25 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+            className="flex size-7 items-center justify-center rounded-[4px] border border-[#172331]/10 text-[#61798a] transition-colors hover:border-[#172331]/25 hover:text-[#172331] disabled:pointer-events-none disabled:opacity-30"
           >
             <ChevronDownIcon className="size-3" />
           </button>

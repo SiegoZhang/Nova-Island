@@ -1,16 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CardBreadcrumb } from "@/components/CardBreadcrumb";
+import { CtaButton } from "@/components/CtaButton";
 import {
   CommitSlider,
   persistDotTuningValue,
   TuningPanelShell,
 } from "@/components/dotSystemTuningControls";
 import { ImageDotMatrix } from "@/components/ImageDotMatrix";
-import { eBtnPrimary, eEyebrowDark, ePageContainer } from "@/lib/eleven";
+import { eEyebrowDark, ePageContainer } from "@/lib/eleven";
 
 // "工程师文化"卡片背景纹理：assets/computer.png（透明背景抠图）用
 // ImageDotMatrix 实时采样成点阵，颜色统一 d0d0d0（跟 AI社群 点阵一致）。密度/点径/位置/大小
@@ -308,7 +308,8 @@ export function TeamSection() {
 
   return (
     <section id="team" className="w-full">
-      <div className={`${ePageContainer} grid gap-14 md:grid-cols-[40fr_60fr] md:items-center md:gap-16`}>
+      {/* 和 AI社群 / FDE 一致：本板块单独占满一个视口高度，内容整体垂直居中。 */}
+      <div className={`${ePageContainer} grid min-h-[100svh] items-center gap-14 py-24 md:grid-cols-[40fr_60fr] md:gap-16`}>
         <div data-parallax className="reveal">
           <p data-title-reveal="1" className={eEyebrowDark}>我们的团队</p>
           <h2
@@ -324,9 +325,9 @@ export function TeamSection() {
             我们由长期扎根 AI
             工程化一线的工程师与研究者组成，团队规模不大，但每个人都直接对接客户场景与交付结果。
           </p>
-          <Link href="/contact" className={`${eBtnPrimary} mt-7`}>
+          <CtaButton href="/contact" onDark size="md" className="mt-7">
             联系我们
-          </Link>
+          </CtaButton>
         </div>
 
         <div

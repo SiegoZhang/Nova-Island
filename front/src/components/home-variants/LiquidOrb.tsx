@@ -204,6 +204,7 @@ const ORB_FRAG = /* glsl */ `
   uniform float uSpecBright;
   uniform float uParallaxAmt;
   uniform float uDissolve;    // 0→1：玻璃外层溶解、内部流动加速、露出后面的星空
+  uniform float uReveal;      // 0→1：入场揭示。0 = 球内空、反光极淡；1 = 完全成形
   uniform vec3  uColLilac;
   uniform vec3  uColViolet;
   uniform vec3  uColIndigo;
@@ -269,6 +270,13 @@ const ORB_FRAG = /* glsl */ `
     col -= smoothstep(0.02, 0.25, st) * 0.05;
     col = mix(col, vec3(1.0), clamp(st * (uStarBright + 0.3 * stir), 0.0, 1.0));
 
+    // —— 入场 uReveal 0→1：小球时球内**全透明**（只有玻璃壳的反光/色散），
+    // 随球放大，星云与星尘从透明里逐渐「注入显影」到正常浓度。0 时把星云星尘
+    // 整体压回「清透玻璃透出的浅底」，>=1 时完全恢复。 ——
+    float fill = clamp(uReveal, 0.0, 1.0);
+    vec3 clearInside = mix(uPageColor, vec3(1.0), 0.30); // 空玻璃球透出的浅底
+    col = mix(clearInside, col, fill);
+
     // —— 溶解：从球心一点开始，随 uDissolve 向外扩成一个流动的圆形缺口 ——
     // 缺口内部 = 透明，露出后面的星空；边界随噪声流动、扭动。
     float gone = 0.0;       // 1 = 这块已溶掉（露出后面星空）
@@ -285,8 +293,11 @@ const ORB_FRAG = /* glsl */ `
       float sd = rad - eat + fl * (0.05 - uDissolve * 0.015);
       gone = 1.0 - smoothstep(-0.05, 0.11, sd);
       glassMask = (1.0 - gone) * (1.0 - uDissolve * 0.9);
-      // 锋面辉光：贴着 sd≈0 的一条**窄**淡紫热边（别烧成刺眼白圈）
-      front = (1.0 - smoothstep(0.0, 0.05, abs(sd))) * (1.0 - uDissolve * 0.35);
+      // 锋面微光：从硬切位置(sd≈0.03)朝**实心内侧**柔和衰减的一层极淡暖光。
+      // 关键：亮度峰值就贴在切口上、往里渐隐，**不是**一条离边缘还有距离的
+      // 独立亮环——offset 的亮环会被眼睛读成一圈白描边（之前就是这个问题）。
+      // 强度压到很低，只用来把硬切锯齿糊掉，不喧宾夺主。
+      front = (1.0 - smoothstep(0.03, 0.12, sd)) * (1.0 - uDissolve * 0.35);
     }
 
     // 折射暗环——收在球内侧
@@ -332,10 +343,12 @@ const ORB_FRAG = /* glsl */ `
     vec3 rimDir = normalize(vec3(0.5, -0.5, 0.35));
     col += pow(clamp(dot(N, rimDir), 0.0, 1.0), 5.0) * fres * 0.9 * glassMask;
 
-    // 溶解带整体抬亮到淡紫
-    col = mix(col, uColLilac * 1.25, smoothstep(0.06, 0.32, gone));
-    // 锋面：贴着切口的一条亮淡紫热边（在实心侧），把硬切的锯齿藏进这条发光边里
-    col += front * mix(uColLilac, vec3(1.0), 0.3) * 1.7;
+    // 溶解带整体抬亮到淡紫：色值收到 *1.05（不再 *1.25 clamp 成粉白）、
+    // 混合量封顶 0.6——切口内侧是一层柔和淡紫，不是一条亮白环。
+    col = mix(col, uColLilac * 1.05, smoothstep(0.04, 0.30, gone) * 0.6);
+    // 锋面：贴着切口往里渐隐的一层极淡暖光，把硬切锯齿糊进去。亮度 0.35，
+    // 不烧成白圈。
+    col += front * uColLilac * 0.35;
 
     // 外缘渐隐到页面浅底：圆外永远是浅底，保证轮廓与浅底无缝（无描边）。
     col = mix(col, uPageColor, smoothstep(0.62, 0.88, rad) * 0.5);
@@ -360,6 +373,8 @@ export function LiquidOrb({
   debug = true,
   interactive = true,
   dissolveRef,
+  revealRef,
+  onBackgroundColorCommit,
 }: {
   className?: string;
   pageColor?: string;
@@ -369,6 +384,14 @@ export function LiquidOrb({
   interactive?: boolean;
   /** 外部按帧写入的溶解进度 0..1（转场用）。用 ref 避免每帧 re-render。 */
   dissolveRef?: { current: number };
+  /** 外部按帧写入的入场揭示进度 0..1（Hero 进场动画用）。1 = 完全成形。 */
+  revealRef?: { current: number };
+  /**
+   * 调参面板里拖「背景色」取色器松手时回调，把新 hex 交给外层去改真正
+   * 的 Hero 页面背景（球体本身不持有背景色状态，只透传 pageColor prop
+   * 驱动 uPageColor uniform）。不传就只在面板里显示，不影响任何东西。
+   */
+  onBackgroundColorCommit?: (hex: string) => void;
 }) {
   const showPanel = DEV_TUNING_ENABLED && debug;
   // 面板要 portal 到 body：LiquidOrb 可能被外层 transform（转场里球会 CSS scale），
@@ -491,6 +514,7 @@ export function LiquidOrb({
       uSpecBright: { value: ORB_DEFAULTS.specBright },
       uParallaxAmt: { value: ORB_DEFAULTS.parallaxAmt },
       uDissolve: { value: 0 },
+      uReveal: { value: revealRef ? 0 : 1 },
       uColLilac: { value: new THREE.Vector3(...hexToRgb(ORB_COLOR_DEFAULTS.lilac)) },
       uColViolet: { value: new THREE.Vector3(...hexToRgb(ORB_COLOR_DEFAULTS.violet)) },
       uColIndigo: { value: new THREE.Vector3(...hexToRgb(ORB_COLOR_DEFAULTS.indigo)) },
@@ -577,6 +601,7 @@ export function LiquidOrb({
       (uniforms.uParallax.value as THREE.Vector2).set(parallax.x, parallax.y);
       (uniforms.uPointer.value as THREE.Vector2).lerp(pointerTarget, 0.15);
       if (dissolveRef) uniforms.uDissolve.value = dissolveRef.current;
+      if (revealRef) uniforms.uReveal.value = revealRef.current;
 
       renderOnce();
       raf = requestAnimationFrame(frame);
@@ -672,6 +697,14 @@ export function LiquidOrb({
             <CommitColorPicker label="云-淡" value={colors.lilac} onCommit={(v) => setColors((p) => ({ ...p, lilac: v }))} />
             <CommitColorPicker label="云-中" value={colors.violet} onCommit={(v) => setColors((p) => ({ ...p, violet: v }))} />
             <CommitColorPicker label="云-浓" value={colors.indigo} onCommit={(v) => setColors((p) => ({ ...p, indigo: v }))} />
+            {/* 背景色：改的是外层 Hero 页面底色（连带球缘融入色），不是球
+                内部的星云色，所以走 onBackgroundColorCommit 交给外层，
+                不进本组件自己的 config/localStorage。 */}
+            <CommitColorPicker
+              label="背景色"
+              value={pageColor}
+              onCommit={(v) => onBackgroundColorCommit?.(v)}
+            />
 
             <div className="mt-1 flex gap-2">
               <button
@@ -679,7 +712,7 @@ export function LiquidOrb({
                 onClick={() => {
                   console.log(
                     "LiquidOrb tuning:\n" +
-                      JSON.stringify({ tuning, colors }, null, 2),
+                      JSON.stringify({ tuning, colors, pageColor }, null, 2),
                   );
                 }}
                 className="flex-1 rounded-full border border-black/[0.08] px-2 py-1 text-[11px] text-[#78716c] transition hover:bg-black/[0.04] hover:text-[#1c1917]"
